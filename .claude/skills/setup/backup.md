@@ -64,14 +64,24 @@ Offer "everything from my old home" too. Then restore in the background
 
 ### Restore without clobbering
 
-- A path that doesn't exist here yet: restore it straight into place
+- A folder that doesn't exist here, or is empty (a fresh Omarchy already has empty
+  `~/Work`, `~/Documents`, `~/Downloads`...): restore it straight into place
   `restic restore "<id>:/home/olduser/Work" --target ~/Work`.
-- A path that exists here (a fresh install already made it): restore to
-  `~/restored-<date>/<path>` first, show the differences, and ask which to keep.
-  For "everything, old wins", `restic restore "<id>:/home/olduser" --target ~ --overwrite always`
-  is fine once the person said so; still keep today's `monitors.lua`/`input.lua`
-  unless they asked for those too.
+  The `<id>:<path>` form only works for folders; a single file says "not a directory".
+- Single files, and anything that already exists here: restore to a staging folder,
+  `restic restore <id> --include /home/olduser/.gitconfig --include /home/olduser/.bashrc --target ~/restored-<date>`,
+  show the differences, and ask which to keep.
+- **Shell startup files** (`.bashrc`, `.bash_profile`, `.profile`, `.zshrc`): never
+  replace Omarchy's. Its `.bashrc` loads the Omarchy environment (`OMARCHY_PATH`,
+  `PATH`); without it the desktop's commands break. Append the person's own lines
+  (aliases, exports, functions) to the end of today's file instead.
+- "Everything, old wins": `restic restore "<id>:/home/olduser" --target ~/restored-<date>`,
+  then copy it over the home folder (`rsync -a ~/restored-<date>/ ~/`) excluding the shell
+  startup files above, plus `.config/hypr/monitors.lua` and `.config/hypr/input.lua`
+  unless the hardware is the same; merge those by hand. Restoring straight onto `~`
+  with `--overwrite always` would replace them.
 - After restoring: `chmod 700 ~/.ssh ~/.gnupg; chmod 600 ~/.ssh/id_*` (not `.pub`).
+- Delete the staging folder and `$XDG_RUNTIME_DIR/restic-pw` when done.
 
 ### Bring restored apps back to life
 
