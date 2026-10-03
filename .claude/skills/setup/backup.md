@@ -118,7 +118,11 @@ snapshots. Settings live in `~/.config/restic/backup.conf`.
      (keep an existing one);
    - write `~/.config/restic/backup.conf` from `backup.conf.example` with their answers;
    - create each repo: `restic init -r <repo>` (with `--password-file` or
-     `--insecure-no-password`);
+     `--insecure-no-password`). On a Linux-formatted (ext4, btrfs) disk the top
+     folder belongs to root, so `restic init` fails with "permission denied"; fix it
+     once with `sudo chown $USER: /run/media/$USER/<label>`. If the disk already
+     holds a repo (an old backup), use a new `USB_DIR` unless they want to keep
+     adding to the old one with its password;
    - copy `backup-usb.timer` and `backup-usb.service` to `~/.config/systemd/user/`;
      in the service, replace `@MOUNT_UNIT@` with
      `systemd-escape -p --suffix=mount /run/media/$USER/<label>`, or delete the
