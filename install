@@ -84,11 +84,11 @@ mod_packages() {
     skip "all packages from packages.txt are installed"
     return 0
   fi
-  # A fresh Omarchy install has no sync databases yet; refresh them with a full
-  # upgrade (never a partial -Sy) before installing anything.
+  # A fresh Omarchy install has no sync databases yet. Omarchy blocks a direct
+  # pacman -Syu, so do its own full update (unattended) before installing.
   if [[ ! -f /var/lib/pacman/sync/core.db ]]; then
-    step "first package database sync and system update (fresh install)"
-    run sudo pacman -Syu --noconfirm
+    step "first system update (fresh install, takes a few minutes)"
+    run omarchy update -y
   fi
   if ((${#repo[@]})); then
     step "install ${repo[*]}"
