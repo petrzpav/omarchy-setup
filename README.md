@@ -31,6 +31,7 @@ git clone https://github.com/petrzpav/omarchy-setup.git ~/.local/share/omarchy-s
 
 | Module | Changes |
 |---|---|
+| `packages` | Installs the apps and tools in [`packages.txt`](packages.txt) that are missing (asks for your sudo password) |
 | `theme` | Copies the Monokai Pro theme to `~/.config/omarchy/themes/` and makes it the active theme |
 | `hypr` | Adds a line to `~/.config/hypr/hyprland.lua` that loads [`hypr/team.lua`](hypr/team.lua) (gaps, rounding, keybindings); copies the screen recording scripts to `~/.local/bin` |
 | `plugins` | Installs the bar plugins [omapager](https://github.com/njpatel/omapager), [wallswap](https://github.com/petrzpav/omarchy-wallswap) and the bundled `petrzpav.indicators` |
@@ -38,6 +39,7 @@ git clone https://github.com/petrzpav/omarchy-setup.git ~/.local/share/omarchy-s
 
 Run only some modules with `./install theme bar`; list them with `./install --list`.
 Every run backs up each file it touches to `~/.local/state/omarchy-setup/backups/`.
+`--restore` brings files back but does not uninstall packages.
 
 ## Your own changes
 
@@ -72,7 +74,9 @@ change it copies the shared parts into the repo, commits and pushes:
   recording scripts, copied as they are;
 - the bar layout from `~/.config/omarchy/shell.json`, without personal widgets
   (listed in `PERSONAL_WIDGETS` in `tools/sync`);
-- `hypr/team.lua`, which the maintainer's Hyprland loads straight from the repo.
+- `hypr/team.lua`, which the maintainer's Hyprland loads straight from the repo;
+- `packages.txt`: packages installed on top of Omarchy, minus Omarchy's own and the
+  personal ones in `PERSONAL_PACKAGES`, refreshed after every pacman run.
 
 A commit that looks like it contains a credential is refused, with a notification.
 Logs: `journalctl --user -u omarchy-setup-sync -f`.

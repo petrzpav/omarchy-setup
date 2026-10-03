@@ -7,7 +7,8 @@ description: Finish the omarchy-setup on this machine with the person - monitors
 
 `./install` (in this repo) has already applied the shared, machine-independent part:
 the Monokai Pro theme, gaps and rounding, keybindings, crash-safe screen recording,
-the bar layout and the omapager, wallswap and indicators plugins. Your job is the
+the bar layout, the omapager, wallswap and indicators plugins, and the extra
+packages in `packages.txt`. Your job is the
 part that depends on this person and this machine.
 
 Load the `omarchy` skill first if it is available; it has the rules for editing
@@ -35,6 +36,8 @@ back up a file before changing it (`cp f f.bak.$(date +%s)`); after any
 
 1. **Check the install.** `./install --dry-run` should report everything as up to
    date, and `hyprctl configerrors` should be empty. Fix anything that isn't.
+   If a package from `packages.txt` failed to install, say which and retry it with
+   `omarchy pkg add <name>` in a visible terminal.
 
 2. **Monitors** (`~/.config/hypr/monitors.lua`). List outputs with
    `hyprctl monitors all`. For a laptop with an external screen, ask how the screens
