@@ -16,6 +16,7 @@ REPO="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 STATE="$HOME/.local/state/omarchy-setup"
 BACKUPS="$STATE/backups"
 CFG="$HOME/.config"
+export OMARCHY_PATH="${OMARCHY_PATH:-/usr/share/omarchy}"
 MODULES=(packages theme hypr plugins bar)
 
 declare -A ABOUT=(
