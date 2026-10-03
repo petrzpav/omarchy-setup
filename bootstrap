@@ -8,42 +8,54 @@
 
 set -euo pipefail
 
-URL="${OMARCHY_SETUP_URL:-https://github.com/petrzpav/omarchy-setup.git}"
-DIR="${OMARCHY_SETUP_DIR:-$HOME/.local/share/omarchy-setup}"
+# Everything is in a function so bash reads the whole script before running it:
+# with `curl | bash` the script arrives on stdin, which main switches to the
+# terminal (sudo, the agent and its questions need one).
+main() {
+  local url="${OMARCHY_SETUP_URL:-https://github.com/petrzpav/omarchy-setup.git}"
+  local dir="${OMARCHY_SETUP_DIR:-$HOME/.local/share/omarchy-setup}"
 
-command -v omarchy >/dev/null || { echo "This is for Omarchy (https://omarchy.org)." >&2; exit 1; }
+  command -v omarchy >/dev/null || { echo "This is for Omarchy (https://omarchy.org)." >&2; exit 1; }
+  if [[ ! -t 0 ]] && { true </dev/tty; } 2>/dev/null; then exec </dev/tty; fi
 
-if [[ -d $DIR/.git ]]; then
-  echo "Updating $DIR"
-  git -C "$DIR" pull --ff-only
-else
-  echo "Cloning into $DIR"
-  git clone -q "$URL" "$DIR"
-fi
+  if [[ -d $dir/.git ]]; then
+    echo "Updating $dir"
+    git -C "$dir" pull --ff-only
+  else
+    echo "Cloning into $dir"
+    git clone -q "$url" "$dir"
+  fi
 
-"$DIR/install"
+  "$dir/install"
 
-# `curl | bash` gives this script no terminal on stdin; the agent and its
-# questions need one.
-if [[ ! -t 0 ]] && [[ -r /dev/tty ]]; then exec </dev/tty; fi
+  echo
+  if [[ ! -t 0 ]]; then
+    echo "The shared setup is applied. To finish it with an AI agent, open a terminal and run:"
+    echo "  cd $dir && claude /setup"
+    return 0
+  fi
 
-echo
-if command -v claude >/dev/null; then
-  echo "Starting Claude Code to finish the setup with you (monitors, keyboard, optional apps)."
-  echo "Leave any time with Ctrl+D; run it again later with: cd $DIR && claude /setup"
-  cd "$DIR" && exec claude "/setup"
-fi
+  if command -v claude >/dev/null; then
+    echo "Starting Claude Code to finish the setup with you: restoring from an old backup,"
+    echo "monitors, keyboard, backups and optional apps. Leave any time with Ctrl+D;"
+    echo "run it again later with: cd $dir && claude /setup"
+    cd "$dir" && exec claude "/setup"
+  fi
 
-agent="$(omarchy-default-agent 2>/dev/null || true)"
-if [[ -n $agent ]] && command -v "$agent" >/dev/null; then
-  echo "Starting $agent to finish the setup with you."
-  cd "$DIR" && exec "$agent" "Read .claude/skills/setup/SKILL.md and follow it."
-fi
+  local agent
+  agent="$(omarchy-default-agent 2>/dev/null || true)"
+  if [[ -n $agent ]] && command -v "$agent" >/dev/null; then
+    echo "Starting $agent to finish the setup with you."
+    cd "$dir" && exec "$agent" "Read .claude/skills/setup/SKILL.md and follow it."
+  fi
 
-cat <<EOF
+  cat <<EOF
 The shared setup is applied. To finish with an AI agent, install one and run:
 
-  cd $DIR && claude /setup
+  cd $dir && claude /setup
 
-Or do the rest by hand: see $DIR/README.md, section "Finish by hand".
+Or do the rest by hand: see $dir/README.md, section "Finish by hand".
 EOF
+}
+
+main "$@"
