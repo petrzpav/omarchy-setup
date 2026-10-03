@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Finish the omarchy-setup on this machine with the person - monitors, keyboard and touchpad, git identity, optional apps and plugins, and a short tour of the keybindings. Use when invoked as /setup or when asked to finish or redo the Omarchy setup.
+description: Finish the omarchy-setup on this machine with the person - restore files and settings from an old backup, monitors, keyboard and touchpad, git identity, lid and locking, automatic backups, optional apps and plugins, and a short tour of the keybindings. Use when invoked as /setup or when asked to finish or redo the Omarchy setup.
 ---
 
 # Finish the Omarchy setup
@@ -39,7 +39,12 @@ back up a file before changing it (`cp f f.bak.$(date +%s)`); after any
    If a package from `packages.txt` failed to install, say which and retry it with
    `omarchy pkg add <name>` in a visible terminal.
 
-2. **Monitors** (`~/.config/hypr/monitors.lua`). List outputs with
+2. **Restore from an old backup.** Ask if they have a backup of their previous
+   computer they want to bring over (files, keys, app settings, or their whole
+   old setup). Do this early: what comes back may already answer later steps.
+   Follow "Restore from an old backup" in [backup.md](backup.md).
+
+3. **Monitors** (`~/.config/hypr/monitors.lua`). List outputs with
    `hyprctl monitors all`. For a laptop with an external screen, ask how the screens
    sit (left/right/above) and which is the main one. Suggest a scale from the
    panel's resolution and physical size (shown in `hyprctl monitors all`): about 1
@@ -47,15 +52,15 @@ back up a file before changing it (`cp f f.bak.$(date +%s)`); after any
    Set `omarchy_monitor_scale` / `omarchy_gdk_scale`, or add per-output
    `hl.monitor({...})` lines.
 
-3. **Keyboard and touchpad** (`~/.config/hypr/input.lua`). Show the current layout
+4. **Keyboard and touchpad** (`~/.config/hypr/input.lua`). Show the current layout
    from `hyprctl devices` and `localectl`. Ask for layouts they type in and how to
    switch (e.g. `grp:alts_toggle`), repeat rate, natural scrolling, tap and
    two-finger right-click. The commented examples in `input.lua` show the syntax.
 
-4. **Git identity.** If `git config --global user.name` / `user.email` are empty,
+5. **Git identity.** If `git config --global user.name` / `user.email` are empty,
    ask and set them. Offer `gh auth login` if `gh` is installed and not logged in.
 
-5. **Lid and locking.** Omarchy's default is: lock after 5 minutes idle, and
+6. **Lid and locking.** Omarchy's default is: lock after 5 minutes idle, and
    closing the lid locks and suspends. Some people keep the laptop docked or reach
    it remotely and want it never to lock on its own. Ask which they prefer and
    explain the trade-off (an unlocked, awake machine is open to anyone nearby).
@@ -83,7 +88,10 @@ back up a file before changing it (`cp f f.bak.$(date +%s)`); after any
    - **No lock before a manual suspend** (only if they also want that):
      `systemctl --user mask omarchy-sleep-lock.service`.
 
-6. **Optional extras.** Ask about each; set up only what they want:
+7. **Backups.** Offer automatic restic backups to a second disk and/or a USB disk,
+   with progress in the bar. Follow "Backups going forward" in [backup.md](backup.md).
+
+8. **Optional extras.** Ask about each; set up only what they want:
    - **Dictation** (Voxtype, push-to-talk speech to text): `omarchy-voxtype-install`
      in a visible terminal.
    - **Fingerprint** login and sudo, only if `omarchy-hw-fingerprint` succeeds:
@@ -106,7 +114,7 @@ back up a file before changing it (`cp f f.bak.$(date +%s)`); after any
      Wallhaven every 180 minutes. Ask if they'd rather keep a fixed wallpaper; if
      so, `omarchy plugin disable petrzpav.wallswap`.
 
-7. **Tour.** Show `CHEATSHEET.md` from this repo as a short list, then point to
+9. **Tour.** Show `CHEATSHEET.md` from this repo as a short list, then point to
    `omarchy menu keybindings` (or Super+K) for everything else. Mention:
    update the shared setup with `cd ~/.local/share/omarchy-setup && git pull && ./install`,
    undo with `./install --restore`.

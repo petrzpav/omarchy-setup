@@ -1,0 +1,8 @@
+{
+  "exec": "~/.config/omarchy/bar/scripts/backup-progress",
+  "id": "backup",
+  "interval": 2,
+  "onClick": "omarchy-launch-floating-terminal-with-presentation journalctl --user -u backup-usb -f",
+  "tooltip": "Local / USB backup",
+  "type": "command"
+}

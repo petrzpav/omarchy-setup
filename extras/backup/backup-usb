@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# Back up $HOME (and any extra data volumes) to restic repos on two targets:
+#   local - a repo on another disk, at most every LOCAL_HOURS hours, quiet unless it fails
+#   usb   - a repo on the USB disk labelled USB_LABEL, at most every USB_HOURS hours;
+#           silently skipped if the disk isn't present
+# Runs from a systemd timer (hourly) and when the USB disk gets mounted.
+#
+#   backup-usb            back up whatever is due
+#   backup-usb --force    ignore the intervals
+#   backup-usb --print    show what would run, run nothing
+#
+# Settings: ~/.config/restic/backup.conf (see backup.conf.example). A target
+# whose setting is empty is skipped.
+set -euo pipefail
+
+PATH="$HOME/.local/bin:$PATH"
+CONF="$HOME/.config/restic/backup.conf"
+
+# Defaults, overridden by $CONF
+LOCAL_REPO=""          # e.g. /data/restic-omarchy
+LOCAL_MOUNT=""         # skip local (and warn) when this isn't mounted, e.g. /data
+LOCAL_EXCLUDE=()       # extra excludes for the local target, e.g. (/data) when the repo is on it
+LOCAL_HOURS=4
+USB_LABEL=""           # filesystem label of the USB disk, e.g. _pp
+USB_DIR=restic-omarchy # repo folder on the USB disk
+USB_HOURS=20
+SOURCES=("$HOME")      # extra paths are backed up only when they are mount points
+PASSWORD_FILE=""       # empty: repos without a password (restic --insecure-no-password)
+EXCLUDES="$HOME/.config/restic/excludes"
+KEEP=(--keep-daily 7 --keep-weekly 8 --keep-monthly 24)
+# shellcheck source=/dev/null
+[[ -f $CONF ]] && source "$CONF"
+
+if [[ -n $PASSWORD_FILE ]]; then
+  export RESTIC_PASSWORD_FILE="$PASSWORD_FILE"
+  restic() { command restic "$@"; }
+else
+  restic() { command restic --insecure-no-password "$@"; }
+fi
+
+MODE=${1:-}
+if [[ $MODE == --print ]]; then restic() { echo "  restic $*"; }; fi
+STATE="$HOME/.local/state"
+# Latest restic status line, read by the bar module ~/.config/omarchy/bar/scripts/backup-progress
+PROGRESS="$STATE/backup-usb.progress"
+export RESTIC_PROGRESS_FPS=0.5
+USB_MNT="/run/media/$USER/$USB_LABEL"
+
+# Notification title/app name: "Local backup" or "USB backup", set per target
+TITLE=Backup
+notify() { [[ $MODE == --print ]] && return 0; notify-send -a "$TITLE" "$@" 2>/dev/null || true; }
+
+# Keep the latest status line (tagged with the target title) in $PROGRESS; print the summary and anything else to the journal
+track_progress() {
+  local line
+  while IFS= read -r line; do
+    case $line in
+      *'"message_type":"status"'*) printf '{"title":"%s",%s\n' "$TITLE" "${line#\{}" >"$PROGRESS.tmp" && mv -f "$PROGRESS.tmp" "$PROGRESS" ;;
+      *'"message_type":"summary"'*) jq -r '"Snapshot \(.snapshot_id[:8]): \(.files_new) new, \(.files_changed) changed files, \(.data_added / 1e9 * 100 | floor / 100) GB added"' <<<"$line" ;;
+      *) printf '%s\n' "$line" ;;
+    esac
+  done
+}
+
+# due STAMP HOURS: true if the target hasn't succeeded within HOURS (or --force/--print)
+due() {
+  [[ $MODE == --force || $MODE == --print || ! -f $1 ]] || (( $(date +%s) - $(stat -c %Y "$1") >= $2*3600 ))
+}
+
+# run_backup TITLE STAMP VERBOSE [extra restic backup args]  (RESTIC_REPOSITORY must be set)
+run_backup() {
+  TITLE=$1; local stamp=$2 verbose=$3; shift 3
+  # Back up data volumes directly: $HOME may only symlink into them (e.g. ~/Videos -> /data2/Videos)
+  local sources=("${SOURCES[0]}") src
+  for src in "${SOURCES[@]:1}"; do mountpoint -q "$src" && sources+=("$src"); done
+  local -a excl=(--exclude-caches --one-file-system --tag auto)
+  [[ -n $LOCAL_REPO ]] && excl+=(--exclude "$LOCAL_REPO")
+  [[ -f $EXCLUDES ]] && excl+=(--exclude-file "$EXCLUDES")
+  echo "== $TITLE to $RESTIC_REPOSITORY: ${sources[*]}"
+  if [[ $MODE == --print ]]; then
+    restic backup "${sources[@]}" "${excl[@]}" --json "$@"
+    restic forget --tag auto --group-by host,tags "${KEEP[@]}" --prune
+    return 0
+  fi
+  [[ $verbose == yes ]] && notify "$TITLE started"
+  if restic backup "${sources[@]}" "${excl[@]}" --json "$@" | track_progress \
+     && printf '{"title":"%s","message_type":"prune"}\n' "$TITLE" >"$PROGRESS" \
+     && restic forget --tag auto --group-by host,tags "${KEEP[@]}" --prune; then
+    touch "$stamp"
+    [[ $verbose == yes ]] && notify "$TITLE finished" "$(restic snapshots --latest 1 --compact | tail -n +3 | head -1)"
+    return 0
+  fi
+  notify -u critical "$TITLE FAILED" "journalctl --user -u backup-usb"
+  return 1
+}
+
+mkdir -p "$STATE"
+[[ $MODE == --print ]] || trap 'rm -f "$PROGRESS" "$PROGRESS.tmp"' EXIT
+failed=0
+
+# --- Local repo ---
+if [[ -z $LOCAL_REPO ]]; then
+  echo "Local: no LOCAL_REPO set, skipping"
+elif [[ -n $LOCAL_MOUNT ]] && ! mountpoint -q "$LOCAL_MOUNT"; then
+  TITLE="Local backup" notify -u critical "Local backup skipped" "$LOCAL_MOUNT is not mounted"; failed=1
+elif due "$STATE/backup-local.last" "$LOCAL_HOURS"; then
+  export RESTIC_REPOSITORY=$LOCAL_REPO
+  [[ -f $RESTIC_REPOSITORY/config ]] || restic init
+  local_args=()
+  for x in "${LOCAL_EXCLUDE[@]}"; do local_args+=(--exclude "$x"); done
+  run_backup "Local backup" "$STATE/backup-local.last" no "${local_args[@]}" || failed=1
+else
+  echo "Local: backed up recently, skipping"
+fi
+
+# --- USB disk ---
+if [[ -z $USB_LABEL ]]; then
+  echo "USB: no USB_LABEL set, skipping"
+  exit $failed
+fi
+if [[ $MODE != --print ]] && ! mountpoint -q "$USB_MNT"; then
+  # Mount it if plugged in but not mounted
+  dev=$(blkid -L "$USB_LABEL" 2>/dev/null) && udisksctl mount -b "$dev" >/dev/null 2>&1 || true
+fi
+if ! mountpoint -q "$USB_MNT"; then
+  echo "USB: backup disk not present, skipping"
+elif due "$STATE/backup-usb.last" "$USB_HOURS"; then
+  export RESTIC_REPOSITORY="$USB_MNT/$USB_DIR"
+  if [[ -f $RESTIC_REPOSITORY/config ]]; then
+    run_backup "USB backup" "$STATE/backup-usb.last" yes || failed=1
+  else
+    TITLE="USB backup" notify -u critical "USB backup disk has no restic repo" "Run: restic init -r $RESTIC_REPOSITORY"; failed=1
+  fi
+else
+  echo "USB: backed up recently, skipping"
+fi
+
+exit $failed

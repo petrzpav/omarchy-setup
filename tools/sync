@@ -29,6 +29,9 @@ SOURCES=(
   "$HOME/.local/bin/screenrecord-session|bin/screenrecord-session"
   "$HOME/.local/bin/screenrecord-pause-toggle|bin/screenrecord-pause-toggle"
   "$HOME/.local/bin/lid-switch|extras/lid-switch"
+  "$HOME/.local/bin/backup-usb|extras/backup/backup-usb"
+  "$CFG/omarchy/bar/scripts/backup-progress|extras/backup/backup-progress"
+  "$CFG/systemd/user/backup-usb.timer|extras/backup/backup-usb.timer"
 )
 SHELL_JSON="$CFG/omarchy/shell.json"
 

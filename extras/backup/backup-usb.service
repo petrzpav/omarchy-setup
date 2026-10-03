@@ -1,0 +1,13 @@
+[Unit]
+Description=Local and USB restic backups
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/backup-usb
+Nice=19
+IOSchedulingClass=idle
+
+[Install]
+# Also run as soon as the USB disk is mounted. Replace @MOUNT_UNIT@ with the
+# output of: systemd-escape -p --suffix=mount /run/media/$USER/<label>
+WantedBy=@MOUNT_UNIT@

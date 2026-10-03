@@ -1,0 +1,17 @@
+/home/*/.cache
+/home/*/.local/share/Trash
+/home/*/.local/share/Steam
+/home/*/.ollama
+/home/*/.npm
+/home/*/.cargo/registry
+/home/*/go/pkg
+/home/*/.local/share/containers
+/home/*/.local/share/docker
+/home/*/.config/*/Cache
+/home/*/.config/*/Code Cache
+/home/*/.config/*/GPUCache
+/home/*/.config/*/Service Worker/CacheStorage
+node_modules
+.venv
+__pycache__
+.cache

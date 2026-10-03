@@ -1,0 +1,22 @@
+# Settings for backup-usb, in ~/.config/restic/backup.conf (sourced by bash).
+# Leave a target's main setting empty to skip that target.
+
+# Local target: a restic repo on a second disk (not the one $HOME is on).
+LOCAL_REPO=/data/restic-omarchy
+LOCAL_MOUNT=/data          # warn and skip when this disk isn't mounted
+LOCAL_EXCLUDE=(/data)      # don't back up the disk the local repo lives on
+LOCAL_HOURS=4
+
+# USB target: a restic repo in USB_DIR on the disk with this filesystem label.
+USB_LABEL=backup
+USB_DIR=restic-omarchy
+USB_HOURS=20
+
+# What to back up: $HOME, plus extra data volumes (only when mounted).
+SOURCES=("$HOME" /data)
+
+# A file holding the repo password. Keep a copy outside the computer (password
+# manager): without it the backup can't be restored. Empty = no password.
+PASSWORD_FILE="$HOME/.config/restic/password"
+
+KEEP=(--keep-daily 7 --keep-weekly 8 --keep-monthly 24)

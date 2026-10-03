@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Bar module: shows local/USB backup progress while ~/.local/bin/backup-usb runs, nothing otherwise
+f="$HOME/.local/state/backup-usb.progress"
+[[ -f $f ]] && (( $(date +%s) - $(stat -c %Y "$f") < 120 )) || exit 0
+
+jq -c '
+  def gb: . / 1e9 * 10 | floor / 10 | tostring;
+  def eta: if . == null or . == 0 then "" else " · ETA \(if . >= 3600 then "\(. / 3600 | floor)h \(. % 3600 / 60 | floor)m" else "\(. / 60 | ceil)m" end)" end;
+  (.title // "Backup") as $t
+  | if .message_type == "prune" then
+    {text: "󰁯 pruning…", tooltip: "\($t): cleaning up old snapshots", class: "active"}
+  else
+    ((.percent_done // 0) * 100 | floor) as $p
+    | ($p / 10 | floor) as $n
+    | {text: "󰁯 \([range($n)] | map("▰") | join(""))\([range(10 - $n)] | map("▱") | join("")) \($p)%",
+       tooltip: "\($t): \(.bytes_done // 0 | gb) / \(.total_bytes // 0 | gb) GB · \(.files_done // 0) / \(.total_files // 0) files\(.seconds_remaining | eta)",
+       class: "active"}
+  end' "$f" 2>/dev/null

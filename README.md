@@ -3,8 +3,9 @@
 My [Omarchy](https://omarchy.org) setup, ready to apply on top of a fresh install:
 Monokai Pro theme, tighter gaps and rounded corners, a bottom transparent bar with a
 workspace pager and status indicators, rotating wallpapers and crash-safe screen
-recording. After that, an AI agent sets up the parts that depend on you: monitors,
-keyboard, accounts and optional apps.
+recording. After that, an AI agent sets up the parts that depend on you: it brings
+back your files and settings from an old backup, then monitors, keyboard, automatic
+backups, accounts and optional apps.
 
 ## Install
 
@@ -59,6 +60,7 @@ cd ~/.local/share/omarchy-setup && git pull && ./install   # update
 
 Without an agent, go through the steps in [`.claude/skills/setup/SKILL.md`](.claude/skills/setup/SKILL.md):
 monitors (`~/.config/hypr/monitors.lua`), keyboard (`~/.config/hypr/input.lua`),
+restoring from a backup and setting up backups ([backup.md](.claude/skills/setup/backup.md)),
 git identity, lid and idle locking, and the optional extras (dictation, fingerprint, AirPods, the Mail/Slack/Trello
 terminal apps).
 
@@ -75,6 +77,8 @@ change it copies the shared parts into the repo, commits and pushes:
 - the bar layout from `~/.config/omarchy/shell.json`, without personal widgets
   (listed in `PERSONAL_WIDGETS` in `tools/sync`);
 - `hypr/team.lua`, which the maintainer's Hyprland loads straight from the repo;
+- the backup script, timer and bar script in `extras/backup/` (its settings,
+  `~/.config/restic/backup.conf`, stay private);
 - `packages.txt`: packages installed on top of Omarchy, minus Omarchy's own and the
   personal ones in `PERSONAL_PACKAGES`, refreshed after every pacman run.
 
