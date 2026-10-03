@@ -16,9 +16,10 @@ REPO="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 STATE="$HOME/.local/state/omarchy-setup"
 BACKUPS="$STATE/backups"
 CFG="$HOME/.config"
-MODULES=(theme hypr plugins bar)
+MODULES=(packages theme hypr plugins bar)
 
 declare -A ABOUT=(
+  [packages]="Extra apps and tools from packages.txt (missing ones only)"
   [theme]="Monokai Pro theme (and set it active)"
   [hypr]="Gaps, rounded corners, keybindings, crash-safe screen recording"
   [plugins]="Bar plugins: omapager, wallswap, indicators"
@@ -69,6 +70,29 @@ sync() {
 }
 
 # ── modules ──────────────────────────────────────────────────────────────────
+
+mod_packages() {
+  local -a repo=() aur=()
+  local pkg
+  while read -r pkg; do
+    [[ -n $pkg ]] || continue
+    if [[ $pkg == aur:* ]]; then pkg="${pkg#aur:}"; pacman -Q "$pkg" &>/dev/null || aur+=("$pkg")
+    else pacman -Q "$pkg" &>/dev/null || repo+=("$pkg"); fi
+  done < <(sed 's/#.*//; s/^\s*//; s/\s*$//' "$REPO/packages.txt")
+
+  if ((${#repo[@]} + ${#aur[@]} == 0)); then
+    skip "all packages from packages.txt are installed"
+    return 0
+  fi
+  if ((${#repo[@]})); then
+    step "install ${repo[*]}"
+    run omarchy pkg add "${repo[@]}"
+  fi
+  if ((${#aur[@]})); then
+    step "install from AUR: ${aur[*]}"
+    run omarchy pkg aur add "${aur[@]}"
+  fi
+}
 
 mod_theme() {
   sync themes/monokai-pro "$CFG/omarchy/themes/monokai-pro"
