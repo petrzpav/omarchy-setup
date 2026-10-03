@@ -52,7 +52,35 @@ back up a file before changing it (`cp f f.bak.$(date +%s)`); after any
 4. **Git identity.** If `git config --global user.name` / `user.email` are empty,
    ask and set them. Offer `gh auth login` if `gh` is installed and not logged in.
 
-5. **Optional extras.** Ask about each; set up only what they want:
+5. **Lid and locking.** Omarchy's default is: lock after 5 minutes idle, and
+   closing the lid locks and suspends. Some people keep the laptop docked or reach
+   it remotely and want it never to lock on its own. Ask which they prefer and
+   explain the trade-off (an unlocked, awake machine is open to anyone nearby).
+   Manual lock (Super + Ctrl + L) always keeps working.
+   - **Idle lock**: `idle.lock` in `~/.config/omarchy/shell.json`, in seconds
+     (default 300). Never lock on idle: `2000000` (the shell has no "off"; `0`
+     locks immediately, and more than about 24 days overflows the timer).
+     `idle.screensaver` (default 150) is separate; ask about it too.
+     Super + Ctrl + I toggles idle locking for the current session.
+   - **Lid closes the screen only, no lock or suspend** (laptops only, check
+     `omarchy-hyprland-monitor-laptop` returns a panel):
+     1. copy `extras/lid-switch` to `~/.local/bin/lid-switch`;
+     2. in `~/.config/hypr/bindings.lua` add
+        ```lua
+        hl.unbind("switch:on:Lid Switch")
+        hl.unbind("switch:off:Lid Switch")
+        o.bind("switch:on:Lid Switch", nil, os.getenv("HOME") .. "/.local/bin/lid-switch close", { locked = true })
+        o.bind("switch:off:Lid Switch", nil, os.getenv("HOME") .. "/.local/bin/lid-switch open", { locked = true })
+        ```
+     3. stop logind from suspending on the lid (needs sudo, so in a visible terminal):
+        `/etc/systemd/logind.conf.d/30-lid-ignore.conf` with `[Login]`,
+        `HandleLidSwitch=ignore`, `HandleLidSwitchExternalPower=ignore`,
+        `HandleLidSwitchDocked=ignore`. It takes effect after a reboot; don't
+        restart systemd-logind, as that ends the session.
+   - **No lock before a manual suspend** (only if they also want that):
+     `systemctl --user mask omarchy-sleep-lock.service`.
+
+6. **Optional extras.** Ask about each; set up only what they want:
    - **Dictation** (Voxtype, push-to-talk speech to text): `omarchy-voxtype-install`
      in a visible terminal.
    - **Fingerprint** login and sudo, only if `omarchy-hw-fingerprint` succeeds:
@@ -75,7 +103,7 @@ back up a file before changing it (`cp f f.bak.$(date +%s)`); after any
      Wallhaven every 180 minutes. Ask if they'd rather keep a fixed wallpaper; if
      so, `omarchy plugin disable petrzpav.wallswap`.
 
-6. **Tour.** Show `CHEATSHEET.md` from this repo as a short list, then point to
+7. **Tour.** Show `CHEATSHEET.md` from this repo as a short list, then point to
    `omarchy menu keybindings` (or Super+K) for everything else. Mention:
    update the shared setup with `cd ~/.local/share/omarchy-setup && git pull && ./install`,
    undo with `./install --restore`.

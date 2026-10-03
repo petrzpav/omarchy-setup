@@ -27,6 +27,7 @@ SOURCES=(
   "$CFG/omarchy/plugins/petrzpav.indicators|plugins/petrzpav.indicators"
   "$HOME/.local/bin/screenrecord-session|bin/screenrecord-session"
   "$HOME/.local/bin/screenrecord-pause-toggle|bin/screenrecord-pause-toggle"
+  "$HOME/.local/bin/lid-switch|extras/lid-switch"
 )
 SHELL_JSON="$CFG/omarchy/shell.json"
 

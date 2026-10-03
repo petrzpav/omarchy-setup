@@ -57,7 +57,7 @@ cd ~/.local/share/omarchy-setup && git pull && ./install   # update
 
 Without an agent, go through the steps in [`.claude/skills/setup/SKILL.md`](.claude/skills/setup/SKILL.md):
 monitors (`~/.config/hypr/monitors.lua`), keyboard (`~/.config/hypr/input.lua`),
-git identity, and the optional extras (dictation, fingerprint, AirPods, the Mail/Slack/Trello
+git identity, lid and idle locking, and the optional extras (dictation, fingerprint, AirPods, the Mail/Slack/Trello
 terminal apps).
 
 Keybindings: [CHEATSHEET.md](CHEATSHEET.md).

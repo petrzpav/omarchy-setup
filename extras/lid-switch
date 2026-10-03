@@ -1,0 +1,15 @@
+#!/bin/bash
+# Lid handling for a stationary laptop: logind ignores the lid (never suspends)
+# and nothing locks, so closing the lid only switches the panel off.
+#   lid-switch close|open
+
+internal=$(omarchy-hyprland-monitor-laptop)
+omarchy-hyprland-monitor-clamshell
+[[ -n $internal ]] || exit 0
+
+case $1 in
+  close) action=disable ;;
+  open) action=enable ;;
+  *) echo "usage: lid-switch close|open" >&2; exit 1 ;;
+esac
+hyprctl dispatch "hl.dsp.dpms({ action = \"$action\", monitor = \"$internal\" })" >/dev/null
