@@ -1,0 +1,162 @@
+#!/bin/bash
+# Maintainer only: keep this repo in step with the maintainer's live config.
+#
+#   tools/sync                    copy live config into the repo, commit, push
+#   tools/sync --dry-run          show what would change in the repo
+#   tools/sync --watch            run forever, syncing a few seconds after any change
+#   tools/sync --install-service  install and start the systemd user service
+#   tools/sync --remove-service   stop and remove it
+#
+# What is shared is listed in SOURCES below. Shared Hyprland settings are not
+# copied: they live in hypr/team.lua, which the maintainer's hyprland.lua loads
+# straight from this repo, so editing it is editing the live config.
+#
+# Before each commit the staged diff is checked for anything that looks like a
+# credential; if one is found nothing is committed and a notification says why.
+
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+CFG="$HOME/.config"
+DEBOUNCE=5
+SERVICE=omarchy-setup-sync
+
+# live path → repo path (folders and files, copied as they are)
+SOURCES=(
+  "$CFG/omarchy/themes/monokai-pro|themes/monokai-pro"
+  "$CFG/omarchy/plugins/petrzpav.indicators|plugins/petrzpav.indicators"
+  "$HOME/.local/bin/screenrecord-session|bin/screenrecord-session"
+  "$HOME/.local/bin/screenrecord-pause-toggle|bin/screenrecord-pause-toggle"
+)
+SHELL_JSON="$CFG/omarchy/shell.json"
+
+# Bar widgets and indicator items that are personal (accounts, hardware,
+# scripts that aren't in this repo). They are dropped from shell/bar.json.
+PERSONAL_WIDGETS='["backup", "poptavky", "petrzpav.mail", "petrzpav.slack", "petrzpav.trello",
+  "omarchy.tailscale", "io.github.thisisgm.omapods"]'
+PERSONAL_ITEMS='["RemoteDesktop"]'
+
+DRY=0
+
+log() { echo "$(date '+%F %T') $*"; }
+notify() { command -v omarchy-notification-send >/dev/null && omarchy-notification-send "$@" || true; }
+
+export_bar() {
+  jq --argjson widgets "$PERSONAL_WIDGETS" --argjson items "$PERSONAL_ITEMS" '
+    .bar
+    | .layout |= map_values(
+        map(select(.id as $id | $widgets | index($id) | not)
+            | if .items then .items |= map(select(. as $i | $items | index($i) | not)) else . end))
+  ' "$SHELL_JSON"
+}
+
+copy_sources() {
+  local entry src dst
+  for entry in "${SOURCES[@]}"; do
+    src="${entry%%|*}" dst="$REPO/${entry#*|}"
+    [[ -e $src ]] || { log "missing, skipped: $src"; continue; }
+    if [[ -d $src ]]; then
+      rsync -a --delete --exclude '*.bak.*' --exclude '.git' $( ((DRY)) && echo --dry-run -i) "$src/" "$dst/"
+    elif ((DRY)); then
+      cmp -s "$src" "$dst" || echo "would update ${entry#*|}"
+    else
+      cp -a "$src" "$dst"
+    fi
+  done
+
+  local bar
+  bar="$(export_bar)"
+  if [[ $bar != "$(jq . "$REPO/shell/bar.json")" ]]; then
+    if ((DRY)); then echo "would update shell/bar.json"; else printf '%s\n' "$bar" >"$REPO/shell/bar.json"; fi
+  fi
+}
+
+# Refuse to commit anything that looks like a credential.
+secrets_in_staged() {
+  git -C "$REPO" diff --cached -U0 --no-color |
+    grep -E '^\+' |
+    grep -nEi 'xox[abprs]-[0-9a-z-]{10,}|gh[pousr]_[0-9a-z]{20,}|github_pat_|sk-[a-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY|(password|passwd|secret|api[_-]?key|token)["'"'"']?\s*[:=]\s*["'"'"']?[^\s"'"'"']{8,}' ||
+    return 1
+}
+
+commit_and_push() {
+  cd "$REPO"
+  git add -A
+  git diff --cached --quiet && return 0
+
+  if hits="$(secrets_in_staged)"; then
+    git reset -q
+    log "NOT committed, possible secret:"$'\n'"$hits"
+    notify -u critical "omarchy-setup: sync stopped" "A change looks like it contains a secret. Nothing was committed; see: journalctl --user -u $SERVICE"
+    return 1
+  fi
+
+  local files
+  files="$(git diff --cached --name-only | sed 's|/.*||' | sort -u | paste -sd ' ')"
+  git commit -q -m "Sync from live config: $files"
+  log "committed: $files"
+
+  if git remote get-url origin >/dev/null 2>&1; then
+    if git push -q origin HEAD 2>&1; then
+      log "pushed"
+    else
+      notify -u critical "omarchy-setup: push failed" "See: journalctl --user -u $SERVICE"
+      return 1
+    fi
+  fi
+}
+
+sync_once() {
+  copy_sources
+  ((DRY)) && { git -C "$REPO" status --short; return 0; }
+  commit_and_push
+}
+
+watch() {
+  local -a paths=("$SHELL_JSON" "$REPO/hypr")
+  local entry
+  for entry in "${SOURCES[@]}"; do paths+=("${entry%%|*}"); done
+
+  log "watching ${#paths[@]} paths"
+  sync_once || true
+  while true; do
+    # Wait for a change, then for things to settle (editors write several times).
+    inotifywait -qq -r -e close_write,create,delete,move "${paths[@]}" 2>/dev/null || sleep 30
+    while inotifywait -qq -r -t "$DEBOUNCE" -e close_write,create,delete,move "${paths[@]}" 2>/dev/null; do :; done
+    sync_once || true
+  done
+}
+
+install_service() {
+  local unit="$HOME/.config/systemd/user/$SERVICE.service"
+  mkdir -p "$(dirname "$unit")"
+  cat >"$unit" <<EOF
+[Unit]
+Description=Keep omarchy-setup repo in step with the live config
+
+[Service]
+ExecStart=$REPO/tools/sync --watch
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target
+EOF
+  systemctl --user daemon-reload
+  systemctl --user enable --now "$SERVICE"
+  echo "Installed $unit. Logs: journalctl --user -u $SERVICE -f"
+}
+
+case "${1:-}" in
+"") sync_once ;;
+-n | --dry-run) DRY=1; sync_once ;;
+--watch) watch ;;
+--install-service) install_service ;;
+--remove-service)
+  systemctl --user disable --now "$SERVICE" 2>/dev/null || true
+  rm -f "$HOME/.config/systemd/user/$SERVICE.service"
+  systemctl --user daemon-reload
+  ;;
+-h | --help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//' ;;
+*) echo "unknown option $1 (see --help)" >&2; exit 1 ;;
+esac

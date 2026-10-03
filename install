@@ -1,0 +1,213 @@
+#!/bin/bash
+# Apply the shared Omarchy setup on top of a stock Omarchy install.
+#
+#   ./install                 apply every module
+#   ./install theme bar       apply only these modules
+#   ./install --dry-run       show what would change, change nothing
+#   ./install --list          list modules
+#   ./install --restore [ts]  undo a run (default: the latest one)
+#
+# Safe to re-run: that is also how you update after `git pull`. Every run backs
+# up each file it touches to ~/.local/state/omarchy-setup/backups/<timestamp>/.
+
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+STATE="$HOME/.local/state/omarchy-setup"
+BACKUPS="$STATE/backups"
+CFG="$HOME/.config"
+MODULES=(theme hypr plugins bar)
+
+declare -A ABOUT=(
+  [theme]="Monokai Pro theme (and set it active)"
+  [hypr]="Gaps, rounded corners, keybindings, crash-safe screen recording"
+  [plugins]="Bar plugins: omapager, wallswap, indicators"
+  [bar]="Bar layout: bottom, transparent, pager + indicators in the center"
+)
+
+DRY=0
+STAMP="$(date +%Y%m%d-%H%M%S)"
+BACKUP_DIR="$BACKUPS/$STAMP"
+
+bold() { printf '\033[1m%s\033[0m\n' "$*"; }
+tilde() { printf %s "${1/#"$HOME"/\~}"; }
+step() { printf '  \033[32m•\033[0m %s\n' "$*"; }
+skip() { printf '  \033[2m· %s\033[0m\n' "$*"; }
+die() { printf '\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
+
+# Run a command, or only print it in dry-run mode.
+run() {
+  if ((DRY)); then printf '    \033[2m$ %s\033[0m\n' "$*"; else "$@"; fi
+}
+
+# Save a path before changing it. New paths are recorded so --restore removes them.
+backup() {
+  local path="$1" rel="${1#"$HOME"/}"
+  ((DRY)) && return 0
+  mkdir -p "$BACKUP_DIR"
+  if [[ -e $path ]]; then
+    [[ -e $BACKUP_DIR/files/$rel ]] && return 0
+    mkdir -p "$BACKUP_DIR/files/$(dirname "$rel")"
+    cp -a "$path" "$BACKUP_DIR/files/$rel"
+  else
+    grep -qxF "$rel" "$BACKUP_DIR/created" 2>/dev/null || echo "$rel" >>"$BACKUP_DIR/created"
+  fi
+}
+
+# Copy a file or folder from the repo, only when it differs.
+sync() {
+  local src="$REPO/$1" dst="$2"
+  if [[ -e $dst ]] && diff -rq "$src" "$dst" >/dev/null 2>&1; then
+    skip "$(tilde "$dst") is up to date"
+    return 0
+  fi
+  step "$(tilde "$dst")"
+  backup "$dst"
+  run mkdir -p "$(dirname "$dst")"
+  run rm -rf "$dst"
+  run cp -a "$src" "$dst"
+}
+
+# ── modules ──────────────────────────────────────────────────────────────────
+
+mod_theme() {
+  sync themes/monokai-pro "$CFG/omarchy/themes/monokai-pro"
+  local current
+  current="$(omarchy theme current 2>/dev/null || true)"
+  if [[ $current == "Monokai Pro" ]]; then
+    skip "Monokai Pro is already the active theme"
+  else
+    step "set theme Monokai Pro (was: ${current:-unknown})"
+    ((DRY)) || { mkdir -p "$BACKUP_DIR" && echo "$current" >"$BACKUP_DIR/theme"; }
+    run omarchy theme set "Monokai Pro"
+  fi
+}
+
+mod_hypr() {
+  local f
+  for f in screenrecord-session screenrecord-pause-toggle; do
+    sync "bin/$f" "$HOME/.local/bin/$f"
+  done
+
+  # Load hypr/team.lua right after Omarchy's defaults, so the person's own
+  # hypr/*.lua files (required later) override it.
+  local conf="$CFG/hypr/hyprland.lua" marker="-- omarchy-setup"
+  if grep -qF -- "$marker" "$conf"; then
+    skip "hyprland.lua already loads team.lua"
+  else
+    grep -q '^require("default.hypr.omarchy")' "$conf" ||
+      die "can't find require(\"default.hypr.omarchy\") in $conf; add the team.lua line by hand (see README)"
+    step "hyprland.lua: load $REPO/hypr/team.lua"
+    backup "$conf"
+    run sed -i "/^require(\"default.hypr.omarchy\")/a\\
+\\
+$marker: shared base config, update with git pull + ./install\\
+local omarchy_setup = \"$REPO/hypr/team.lua\"\\
+if io.open(omarchy_setup, \"r\") then dofile(omarchy_setup) end" "$conf"
+  fi
+}
+
+mod_plugins() {
+  sync plugins/petrzpav.indicators "$CFG/omarchy/plugins/petrzpav.indicators"
+
+  local url id
+  for url in https://github.com/njpatel/omapager.git https://github.com/petrzpav/omarchy-wallswap.git; do
+    id="$(basename "$url" .git)"
+    case $id in omapager) id=njpatel.omapager ;; omarchy-wallswap) id=petrzpav.wallswap ;; esac
+    if [[ -d $CFG/omarchy/plugins/$id ]]; then
+      skip "plugin $id is installed (update: omarchy plugin update $id)"
+    else
+      step "plugin $id"
+      backup "$CFG/omarchy/plugins/$id"
+      run omarchy plugin add "$url" --yes
+    fi
+  done
+  ((DRY)) || omarchy-shell shell rescanPlugins >/dev/null 2>&1 || true
+}
+
+mod_bar() {
+  local shell="$CFG/omarchy/shell.json" merged
+  [[ -f $shell ]] || die "$shell not found; is this an Omarchy install?"
+  merged="$(jq --slurpfile bar "$REPO/shell/bar.json" '.bar = $bar[0]' "$shell")"
+  if [[ $merged == "$(jq . "$shell")" ]]; then
+    skip "bar layout is up to date"
+    return 0
+  fi
+  step "shell.json: bar layout (idle, plugins and other settings kept)"
+  backup "$shell"
+  if ((DRY)); then
+    printf '    \033[2m$ jq .bar = shell/bar.json %s\033[0m\n' "$(tilde "$shell")"
+  else
+    printf '%s\n' "$merged" >"$shell"
+  fi
+}
+
+# ── restore ──────────────────────────────────────────────────────────────────
+
+restore() {
+  local stamp="${1:-$(ls -1 "$BACKUPS" 2>/dev/null | tail -1)}" dir rel
+  [[ -n $stamp && -d $BACKUPS/$stamp ]] || die "no backup ${1:-found} in $BACKUPS"
+  dir="$BACKUPS/$stamp"
+  bold "Restoring the state from before run $stamp"
+  if [[ -f $dir/created ]]; then
+    while read -r rel; do
+      step "remove ~/$rel"
+      rm -rf "${HOME:?}/$rel"
+    done <"$dir/created"
+  fi
+  if [[ -d $dir/files ]]; then
+    (cd "$dir/files" && find . -mindepth 1 \( -type f -o -type l \) -printf '%P\n') | while read -r rel; do
+      step "restore ~/$rel"
+      mkdir -p "$HOME/$(dirname "$rel")"
+      rm -rf "${HOME:?}/$rel"
+      cp -a "$dir/files/$rel" "$HOME/$rel"
+    done
+  fi
+  if [[ -s $dir/theme ]]; then
+    step "set theme $(cat "$dir/theme")"
+    omarchy theme set "$(cat "$dir/theme")"
+  fi
+  hyprctl reload >/dev/null 2>&1 || true
+  bold "Done."
+}
+
+# ── main ─────────────────────────────────────────────────────────────────────
+
+selected=()
+while (($#)); do
+  case $1 in
+  -n | --dry-run) DRY=1 ;;
+  -l | --list)
+    for m in "${MODULES[@]}"; do printf '  %-8s %s\n' "$m" "${ABOUT[$m]}"; done
+    exit 0
+    ;;
+  --restore) shift; restore "${1:-}"; exit 0 ;;
+  -h | --help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -*) die "unknown option $1 (see --help)" ;;
+  *)
+    [[ -n ${ABOUT[$1]:-} ]] || die "unknown module $1 (see --list)"
+    selected+=("$1")
+    ;;
+  esac
+  shift
+done
+((${#selected[@]})) || selected=("${MODULES[@]}")
+
+command -v omarchy >/dev/null || die "this needs Omarchy (https://omarchy.org)"
+command -v jq >/dev/null || die "jq is missing: omarchy pkg add jq"
+
+((DRY)) && bold "Dry run: nothing will be changed"
+for m in "${MODULES[@]}"; do
+  [[ " ${selected[*]} " == *" $m "* ]] || continue
+  bold "$m — ${ABOUT[$m]}"
+  "mod_$m"
+done
+
+if ((!DRY)); then
+  if [[ " ${selected[*]} " == *" hypr "* ]] && command -v hyprctl >/dev/null; then
+    hyprctl reload >/dev/null
+    errors="$(hyprctl configerrors 2>/dev/null | grep -v '^\s*$' || true)"
+    [[ -n $errors ]] && printf '\033[33mHyprland config errors:\033[0m\n%s\n' "$errors"
+  fi
+  [[ -d $BACKUP_DIR ]] && echo && echo "Backup: $BACKUP_DIR   (undo: ./install --restore)"
+fi

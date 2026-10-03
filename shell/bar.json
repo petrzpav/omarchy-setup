@@ -1,0 +1,37 @@
+{
+  "centerAnchor": "omarchy.clock",
+  "layout": {
+    "center": [
+      { "id": "njpatel.omapager" },
+      {
+        "id": "petrzpav.indicators",
+        "items": ["Dictation", "ScreenRecording", "Reminder", "NightLight", "StayAwake"]
+      },
+      {
+        "format": "dddd HH:mm",
+        "formatAlt": "d MMMM 'W'ww yyyy",
+        "id": "omarchy.clock",
+        "verticalFormat": "HH\n—\nmm"
+      },
+      { "id": "omarchy.keyboard-layout" },
+      { "id": "omarchy.weather" },
+      { "id": "omarchy.system-update" }
+    ],
+    "left": [
+      { "id": "omarchy.menu" },
+      { "id": "omarchy.workspaces" }
+    ],
+    "right": [
+      { "id": "omarchy.tray" },
+      { "id": "petrzpav.wallswap", "interval": "180", "sources": "wallhaven" },
+      { "id": "omarchy.agents" },
+      { "id": "omarchy.bluetooth" },
+      { "id": "omarchy.network" },
+      { "id": "omarchy.audio" },
+      { "id": "omarchy.monitor" },
+      { "id": "omarchy.power" }
+    ]
+  },
+  "position": "bottom",
+  "transparent": true
+}

@@ -1,0 +1,134 @@
+#!/bin/bash
+# Crash-safe long screen recording (focused monitor + microphone).
+#
+#   screenrecord-session         start, or stop if already recording
+#   screenrecord-session stop    stop only
+#
+# Records to MKV, which stays playable up to the last written second even if
+# the recorder crashes or the machine loses power (MP4 does not). A watchdog
+# restarts the recorder into a new "-partN.mkv" file if it dies unexpectedly,
+# and warns when disk space runs low.
+
+[[ -f ~/.config/user-dirs.dirs ]] && source ~/.config/user-dirs.dirs
+OUTPUT_DIR="${OMARCHY_SCREENRECORD_DIR:-${XDG_VIDEOS_DIR:-$HOME/Videos}}"
+RUN_DIR="${XDG_RUNTIME_DIR:-/tmp}"
+WATCHDOG_PID_FILE="$RUN_DIR/screenrecord-session.pid"
+STOP_FLAG="$RUN_DIR/screenrecord-session.stop"
+LOG_FILE="$OUTPUT_DIR/.screenrecord-session.log"
+MIN_FREE_GB=5
+
+notify() { omarchy-notification-send "$@"; }
+log() { echo "$(date '+%F %T') $*" >>"$LOG_FILE"; }
+refresh_bar() { omarchy-shell -q omarchy.indicators refresh; }
+
+recorder_running() { pgrep -f "^gpu-screen-recorder" >/dev/null; }
+watchdog_running() { [[ -f $WATCHDOG_PID_FILE ]] && kill -0 "$(cat "$WATCHDOG_PID_FILE")" 2>/dev/null; }
+
+free_gb() { df --output=avail -BG "$OUTPUT_DIR" | tail -1 | tr -dc '0-9'; }
+
+stop_recording() {
+  touch "$STOP_FLAG"
+  pkill -SIGINT -f "^gpu-screen-recorder" # SIGINT lets it finish the file
+
+  # Never force-kill: wait as long as it takes to close the file.
+  local waited=0
+  while recorder_running; do
+    sleep 0.2
+    ((waited++))
+    ((waited == 150)) && notify -t 5000 "Screen recording" "Still finishing the file, please wait…"
+  done
+  while watchdog_running; do sleep 0.2; done
+  rm -f "$STOP_FLAG"
+}
+
+# Runs in the background for the whole session.
+watchdog() {
+  local base="$1" monitor="$2" part=1 file rc started
+  local -a quick_failures=()
+
+  echo $BASHPID >"$WATCHDOG_PID_FILE"
+  rm -f "$STOP_FLAG"
+
+  while true; do
+    if ((part == 1)); then file="$base.mkv"; else file="$base-part$part.mkv"; fi
+    log "start part $part -> $file"
+    started=$(date +%s)
+
+    gpu-screen-recorder -w "$monitor" -s 0x0 -c mkv -k auto -f 30 -fm cfr \
+      -fallback-cpu-encoding yes -a default_input -ac aac \
+      -o "$file" 2>>"$LOG_FILE" &
+    local rec_pid=$!
+    refresh_bar
+
+    # Disk space check alongside the recorder
+    (
+      while kill -0 $rec_pid 2>/dev/null; do
+        if (($(free_gb) < MIN_FREE_GB)); then
+          notify -u critical "Screen recording: low disk space" "Only $(free_gb) GB free in $OUTPUT_DIR"
+          break
+        fi
+        sleep 30
+      done
+    ) &
+    local disk_pid=$!
+
+    wait $rec_pid
+    rc=$?
+    kill $disk_pid 2>/dev/null
+    log "part $part exited rc=$rc"
+
+    # A deliberate stop (ours or Omarchy's SIGINT) exits cleanly.
+    if [[ -f $STOP_FLAG ]] || ((rc == 0)); then
+      break
+    fi
+
+    # Unexpected death: restart into a new part, unless it keeps failing fast.
+    if (($(date +%s) - started < 20)); then quick_failures+=(1); else quick_failures=(); fi
+    if ((${#quick_failures[@]} >= 3)); then
+      notify -u critical "Screen recording FAILED" "Recorder keeps crashing, recording stopped. See $LOG_FILE"
+      log "giving up after repeated quick failures"
+      break
+    fi
+
+    ((part++))
+    notify -u critical "Screen recording crashed — restarted" "Saved so far: $(basename "$file"). Continuing in part $part."
+    sleep 1
+  done
+
+  rm -f "$WATCHDOG_PID_FILE" "$RUN_DIR/screenrecord-paused"
+  refresh_bar
+
+  local files
+  files=$(ls -1 "$base"*.mkv 2>/dev/null | xargs -rn1 basename | paste -sd ' ')
+  [[ -n $files ]] && notify -t 10000 "Screen recording saved" "$files" --exec mpv -- "$base.mkv"
+  log "session done: $files"
+}
+
+start_recording() {
+  if [[ ! -d $OUTPUT_DIR ]]; then
+    notify -u critical -t 3000 "Screen recording directory does not exist: $OUTPUT_DIR"
+    exit 1
+  fi
+  if (($(free_gb) < MIN_FREE_GB)); then
+    notify -u critical "Screen recording not started" "Less than ${MIN_FREE_GB} GB free in $OUTPUT_DIR"
+    exit 1
+  fi
+
+  local base="$OUTPUT_DIR/screenrecording-$(date +'%Y-%m-%d_%H-%M-%S')"
+  local monitor
+  monitor=$(omarchy-hyprland-monitor-focused)
+
+  setsid bash "$0" __watchdog "$base" "$monitor" </dev/null >/dev/null 2>&1 &
+}
+
+case "${1:-toggle}" in
+__watchdog) watchdog "$2" "$3" ;;
+stop) recorder_running && stop_recording ;;
+toggle)
+  if recorder_running || watchdog_running; then
+    stop_recording
+  else
+    start_recording
+  fi
+  ;;
+esac

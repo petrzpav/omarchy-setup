@@ -1,0 +1,49 @@
+#!/bin/bash
+# One-line setup for a fresh Omarchy machine:
+#
+#   curl -fsSL https://raw.githubusercontent.com/petrzpav/omarchy-setup/main/bootstrap | bash
+#
+# Clones (or updates) the repo, applies the shared setup, then hands over to an
+# AI agent for the parts that depend on you and your machine.
+
+set -euo pipefail
+
+URL="${OMARCHY_SETUP_URL:-https://github.com/petrzpav/omarchy-setup.git}"
+DIR="${OMARCHY_SETUP_DIR:-$HOME/.local/share/omarchy-setup}"
+
+command -v omarchy >/dev/null || { echo "This is for Omarchy (https://omarchy.org)." >&2; exit 1; }
+
+if [[ -d $DIR/.git ]]; then
+  echo "Updating $DIR"
+  git -C "$DIR" pull --ff-only
+else
+  echo "Cloning into $DIR"
+  git clone -q "$URL" "$DIR"
+fi
+
+"$DIR/install"
+
+# `curl | bash` gives this script no terminal on stdin; the agent and its
+# questions need one.
+if [[ ! -t 0 ]] && [[ -r /dev/tty ]]; then exec </dev/tty; fi
+
+echo
+if command -v claude >/dev/null; then
+  echo "Starting Claude Code to finish the setup with you (monitors, keyboard, optional apps)."
+  echo "Leave any time with Ctrl+D; run it again later with: cd $DIR && claude /setup"
+  cd "$DIR" && exec claude "/setup"
+fi
+
+agent="$(omarchy-default-agent 2>/dev/null || true)"
+if [[ -n $agent ]] && command -v "$agent" >/dev/null; then
+  echo "Starting $agent to finish the setup with you."
+  cd "$DIR" && exec "$agent" "Read .claude/skills/setup/SKILL.md and follow it."
+fi
+
+cat <<EOF
+The shared setup is applied. To finish with an AI agent, install one and run:
+
+  cd $DIR && claude /setup
+
+Or do the rest by hand: see $DIR/README.md, section "Finish by hand".
+EOF
