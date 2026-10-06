@@ -56,6 +56,25 @@ cd ~/.local/share/omarchy-setup && git pull && ./install   # update
 ./install --restore 20261003-171500                         # undo a specific run
 ```
 
+## What the agent can't do for you
+
+The agent sets these up on the computer, but a few steps happen on your phone or in a web console. Do them yourself when it asks:
+
+**Remote access from the iPhone** (Tailscale + [Heeler](https://apps.apple.com/us/app/heeler-for-herdr/id6797263135), to watch and answer your coding agents in herdr from the phone; [details](.claude/skills/setup/remote-access.md)):
+
+1. On the iPhone, install **Tailscale** and **Heeler** from the App Store. Log in to Tailscale with the same account as the computer.
+2. In the [Tailscale admin console → Access controls](https://login.tailscale.com/admin/acls), set the `ssh` section so that normal users are let in without a browser login. The default `check` keeps asking you to log in again, and Heeler times out on it:
+
+   ```json
+   "ssh": [
+     {"action": "check",  "src": ["autogroup:member"], "dst": ["autogroup:self"], "users": ["root"]},
+     {"action": "accept", "src": ["autogroup:member"], "dst": ["autogroup:self"], "users": ["autogroup:nonroot"]}
+   ]
+   ```
+
+   Only your own devices can connect, and Tailscale still checks each device's key.
+3. In Heeler, scan the QR code the agent shows on the computer and pick the Tailscale address as the host.
+
 ## Finish by hand
 
 Without an agent, go through the steps in [`.claude/skills/setup/SKILL.md`](.claude/skills/setup/SKILL.md):
