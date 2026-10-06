@@ -13,6 +13,7 @@ All bindings, searchable: **Super + K**.
 | Super + Q | Close window |
 | Super + Z | Bring back the last hidden window |
 | Super + Alt + W | Hidden windows: pick one to bring back |
+| Super + Shift + B | Browser: brings back a hidden browser window, or opens a new one |
 
 ## Omarchy essentials
 
@@ -21,7 +22,6 @@ All bindings, searchable: **Super + K**.
 | Super + Space | Omarchy menu (apps, settings, everything) |
 | Super + Alt + Space | Apps menu |
 | Super + Return | Terminal |
-| Super + Shift + B | Browser |
 | Super + T | Toggle floating/tiling |
 | Super + O | Pop window out (float and pin) |
 | Super + 1…9 | Switch workspace (add Shift to move the window there) |
