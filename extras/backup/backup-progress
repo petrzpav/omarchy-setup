@@ -8,11 +8,10 @@ jq -c '
   def eta: if . == null or . == 0 then "" else " · ETA \(if . >= 3600 then "\(. / 3600 | floor)h \(. % 3600 / 60 | floor)m" else "\(. / 60 | ceil)m" end)" end;
   (.title // "Backup") as $t
   | if .message_type == "prune" then
-    {text: "󰁯 pruning…", tooltip: "\($t): cleaning up old snapshots", class: "active"}
+    {text: "󰁯 pruning…", tooltip: "\($t): cleaning up old snapshots"}
   else
     ((.percent_done // 0) * 100 | floor) as $p
     | ($p / 10 | floor) as $n
     | {text: "󰁯 \([range($n)] | map("▰") | join(""))\([range(10 - $n)] | map("▱") | join("")) \($p)%",
-       tooltip: "\($t): \(.bytes_done // 0 | gb) / \(.total_bytes // 0 | gb) GB · \(.files_done // 0) / \(.total_files // 0) files\(.seconds_remaining | eta)",
-       class: "active"}
+       tooltip: "\($t): \(.bytes_done // 0 | gb) / \(.total_bytes // 0 | gb) GB · \(.files_done // 0) / \(.total_files // 0) files\(.seconds_remaining | eta)"}
   end' "$f" 2>/dev/null
