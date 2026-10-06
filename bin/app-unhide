@@ -14,7 +14,13 @@
 state="${XDG_RUNTIME_DIR:-/tmp}/app-hide"
 d() { hyprctl dispatch "$1" >/dev/null; }
 
-clients=$(hyprctl clients -j)
+# One at a time: a launcher focusing a hidden window can fire the focus hook twice, and a
+# second run racing the first would drop the window next to whatever has focus. Whoever
+# waited sees the window already back and stops.
+mkdir -p "$state"
+lock() { exec 9>"$state/.lock" && flock 9; clients=$(hyprctl clients -j); }
+[[ -z ${1:-} ]] || lock # the picker locks once something is picked
+clients=${clients:-$(hyprctl clients -j)}
 hidden() { jq -r "[.[] | select(.workspace.name == \"special:hidden\") | $1]" <<<"$clients"; }
 
 # The hidden window (of a class matching the regex, any case) that was hidden last.
@@ -37,13 +43,14 @@ case "${1:-}" in
   [[ -n $desktop ]] || desktop=$(xdg-mime query default x-scheme-handler/https)
   exe=$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/"$desktop" 2>/dev/null | head -1)
   addr=$(last_hidden "^$(basename "${exe:-browser}" -stable)")
-  [[ -n $addr ]] || exec omarchy-launch-browser
+  [[ -n $addr ]] || exec omarchy-launch-browser 9>&-
   ;;
 "")
   rows=$(hidden '"󰖯\t\(.title[:70])\t\(.class)  \(.address)"' | jq -r '.[]')
   [[ -n $rows ]] || { notify-send -t 2000 "No hidden windows"; exit 0; }
   pick=$(omarchy-menu-select 'Hidden windows' -- --width 700 <<<"$rows") || exit 0
   addr=${pick##* }
+  lock
   ;;
 *)
   addr=$(last_hidden "^$1\$")
