@@ -8,7 +8,11 @@ All bindings, searchable: **Super + K**.
 |---|---|
 | Ctrl + Alt + R | Start/stop screen recording of the focused monitor with mic (crash-safe MKV in ~/Videos) |
 | Ctrl + Alt + P | Pause/resume the recording (the bar icon shows the state) |
-| Super + Shift + H | Herdr terminal |
+| Super + Shift + H | Herdr (focuses it when it's already open) |
+| Super + W | Hide window: the app keeps running and comes back where it was when you open it again |
+| Super + Q | Close window |
+| Super + Z | Bring back the last hidden window |
+| Super + Alt + W | Hidden windows: pick one to bring back |
 
 ## Omarchy essentials
 
@@ -18,7 +22,6 @@ All bindings, searchable: **Super + K**.
 | Super + Alt + Space | Apps menu |
 | Super + Return | Terminal |
 | Super + Shift + B | Browser |
-| Super + W | Close window |
 | Super + T | Toggle floating/tiling |
 | Super + O | Pop window out (float and pin) |
 | Super + 1…9 | Switch workspace (add Shift to move the window there) |

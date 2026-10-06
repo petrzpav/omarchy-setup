@@ -1,9 +1,9 @@
 #!/bin/bash
 # Maintainer only: keep this repo in step with the maintainer's live config.
 #
-#   tools/sync                    copy live config into the repo, commit, push
+#   tools/sync                    copy live config into the repo and release it as a hotfix
 #   tools/sync --dry-run          show what would change in the repo
-#   tools/sync --watch            run forever, syncing a few seconds after any change
+#   tools/sync --watch            run forever, syncing once nothing changed for DEBOUNCE seconds
 #   tools/sync --install-service  install and start the systemd user service
 #   tools/sync --remove-service   stop and remove it
 #
@@ -12,15 +12,20 @@
 # copied: they live in hypr/team.lua, which the maintainer's hyprland.lua loads
 # straight from this repo, so editing it is editing the live config.
 #
-# Before each commit the staged diff is checked for anything that looks like a
-# credential; if one is found nothing is committed and a notification says why.
+# Changes are released the Flow way (github.com/internetguru/flow, see CLAUDE.md): a hotfix
+# branch from main gets the changes, then Flow releases it as a patch version with changelog
+# entries (written by `claude -p`, or generic ones without it), merges it back into dev and
+# pushes. The repo then returns to the branch it was on. Before that the diff is checked for
+# anything that looks like a credential; if one is found nothing is committed and a
+# notification says why.
 
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 CFG="$HOME/.config"
-DEBOUNCE=5
+DEBOUNCE=300 # every sync is a release, so wait until the editing is done
 SERVICE=omarchy-setup-sync
+PRODUCTION=main
 
 # live path → repo path (folders and files, copied as they are)
 SOURCES=(
@@ -28,6 +33,8 @@ SOURCES=(
   "$CFG/omarchy/plugins/petrzpav.indicators|plugins/petrzpav.indicators"
   "$HOME/.local/bin/screenrecord-session|bin/screenrecord-session"
   "$HOME/.local/bin/screenrecord-pause-toggle|bin/screenrecord-pause-toggle"
+  "$HOME/.local/bin/app-hide|bin/app-hide"
+  "$HOME/.local/bin/app-unhide|bin/app-unhide"
   "$HOME/.local/bin/lid-switch|extras/lid-switch"
   "$HOME/.local/bin/backup-usb|extras/backup/backup-usb"
   "$CFG/omarchy/bar/scripts/backup-progress|extras/backup/backup-progress"
@@ -116,9 +123,58 @@ secrets_in_staged() {
     return 1
 }
 
-commit_and_push() {
+# Repo paths sync writes; nothing else in the checkout is ever staged.
+synced_paths() {
+  local entry path
+  for path in $(for entry in "${SOURCES[@]}"; do echo "${entry#*|}"; done) shell/bar.json packages.txt hypr; do
+    [[ -e $REPO/$path ]] && echo "$path"
+  done
+  true
+}
+
+# Changelog entries for the staged changes, one "Keyword: sentence." per line, as Flow takes them.
+changelog_entries() {
+  local diff entries
+  diff="$(git diff --cached --no-color)"
+  if command -v claude >/dev/null; then
+    entries="$(timeout 180 claude -p --model sonnet "Write CHANGELOG.md entries for this change to a shared Omarchy setup (themes, bar, Hyprland keybindings, scripts, packages). Rules: one entry per change, one line each, formatted 'Keyword: sentence.' where Keyword is Added, Changed, Removed or Fixed; write for someone using the setup, in the present tense, starting with the subject, not with 'Fix' or 'Add'; name keys and features as the user sees them; brevity wins. Reply with the entry lines only.
+
+$diff" 2>/dev/null | grep -E '^(Added|Changed|Deprecated|Removed|Fixed|Security): .+' || true)"
+    [[ -n $entries ]] && { echo "$entries"; return; }
+  fi
+
+  # Without Claude: one generic line per area, packages by name.
+  local area pkgs
+  for area in $(git diff --cached --name-only | sed 's|/.*||' | sort -u); do
+    case $area in
+    themes) echo "Changed: The Monokai Pro theme is updated." ;;
+    plugins) echo "Changed: The bar indicators are updated." ;;
+    bin) echo "Changed: The setup's scripts (screen recording, hiding windows) are updated." ;;
+    extras) echo "Changed: The optional extras (lid switch, backups) are updated." ;;
+    shell) echo "Changed: The bar layout is updated." ;;
+    hypr) echo "Changed: The shared Hyprland settings and keybindings are updated." ;;
+    esac
+  done
+  pkgs="$(git diff --cached -U0 -- packages.txt | sed -n 's/^+\([^+#[:space:]][^[:space:]]*\).*/\1/p' | paste -sd ',' | sed 's/,/, /g')"
+  [[ -n $pkgs ]] && echo "Added: Packages $pkgs."
+  pkgs="$(git diff --cached -U0 -- packages.txt | sed -n 's/^-\([^-#[:space:]][^[:space:]]*\).*/\1/p' | paste -sd ',' | sed 's/,/, /g')"
+  [[ -n $pkgs ]] && echo "Removed: Packages $pkgs."
+  true
+}
+
+fail() {
+  log "$1"
+  notify -u critical "omarchy-setup: sync stopped" "$1 See: journalctl --user -u $SERVICE"
+  return 1
+}
+
+# Move the synced changes onto a Flow hotfix branch, release it with changelog entries
+# (merged back into dev by Flow) and push. The checkout ends on the branch it started on.
+release_hotfix() {
   cd "$REPO"
-  git add -A
+  local -a paths
+  mapfile -t paths < <(synced_paths)
+  git add -A -- "${paths[@]}"
   git diff --cached --quiet && return 0
 
   if hits="$(secrets_in_staged)"; then
@@ -127,26 +183,53 @@ commit_and_push() {
     notify -u critical "omarchy-setup: sync stopped" "A change looks like it contains a secret. Nothing was committed; see: journalctl --user -u $SERVICE"
     return 1
   fi
+  # Flow needs a clean checkout: anything else uncommitted is the maintainer's own work.
+  if [[ -n "$(git status --porcelain --untracked-files=no -- . "${paths[@]/#/:!}")" ]]; then
+    git reset -q
+    fail "The repo has uncommitted changes outside the synced files; commit or stash them."
+    return 1
+  fi
 
-  local files
+  local entries files branch tag sha
+  entries="$(changelog_entries)"
   files="$(git diff --cached --name-only | sed 's|/.*||' | sort -u | paste -sd ' ')"
+  branch="$(git branch --show-current)"
+  tag="$SERVICE $(date +%s)"
+
+  git stash push -q -m "$tag" -- "${paths[@]}"
+  sha="$(git stash list --format='%H %gs' | grep -F "$tag" | cut -d' ' -f1)"
+  # The stash holds the only copy of hypr/team.lua edits: on failure keep it and say where.
+  local keep="The synced changes are kept in stash $sha (git stash apply $sha)."
+
+  if ! flow --yes --pull >/dev/null; then git checkout -q "$branch"; fail "flow --pull failed. $keep"; return 1; fi
+  git checkout -q "$PRODUCTION" || { fail "Can't check out $PRODUCTION. $keep"; return 1; }
+  if ! flow --yes hotfix >/dev/null; then git checkout -q "$branch"; fail "flow hotfix failed. $keep"; return 1; fi
+  if ! git stash apply -q "$sha"; then
+    git reset -q --hard && git checkout -q "$branch"
+    fail "The synced changes conflict with $PRODUCTION. $keep"
+    return 1
+  fi
+  git add -A -- "${paths[@]}"
   git commit -q -m "Sync from live config: $files"
-  log "committed: $files"
+  log "committed on $(git branch --show-current): $files"$'\n'"$entries"
+
+  if ! printf '%s\n\n' "$entries" | flow --yes >/dev/null; then
+    fail "The hotfix release failed; the repo is left as Flow stopped. $keep"
+    return 1
+  fi
+  git stash drop -q "$(git stash list --format='%gd %gs' | grep -F "$tag" | cut -d' ' -f1)"
+  log "released $(git show "$PRODUCTION:VERSION")"
+  git checkout -q "$branch"
 
   if git remote get-url origin >/dev/null 2>&1; then
-    if git push -q origin HEAD 2>&1; then
-      log "pushed"
-    else
-      notify -u critical "omarchy-setup: push failed" "See: journalctl --user -u $SERVICE"
-      return 1
-    fi
+    flow --push >/dev/null && log "pushed" || { fail "Pushing the release failed."; return 1; }
   fi
 }
 
 sync_once() {
   copy_sources
   ((DRY)) && { git -C "$REPO" status --short; return 0; }
-  commit_and_push
+  release_hotfix
 }
 
 watch() {
