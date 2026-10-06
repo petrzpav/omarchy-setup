@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.5] - 2026-10-06
+
+### Fixed
+
+- A hidden window brought back by its launcher returns to its own spot instead of landing next to the focused window.
+
 ## [0.1.4] - 2026-10-06
 
 ### Changed
@@ -43,6 +49,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Restore from an old computer's backup, and automatic local / USB restic backups.
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
+[0.1.5]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.1...v0.1.2
