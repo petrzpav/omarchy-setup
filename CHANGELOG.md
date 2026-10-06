@@ -22,5 +22,5 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
-[0.1.1]: https://https://github.com/petrzpav/omarchy-setup/compare/v0.1.0...v0.1.1
+[0.1.1]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/petrzpav/omarchy-setup/releases/tag/v0.1.0
