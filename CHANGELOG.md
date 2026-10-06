@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-06
+
+### Added
+
+- Instructions for AI agents: changes to the repository follow Flow (ig-flow and ig-changelog skills).
+
 ## [0.1.0] - 2026-10-06
 
 ### Added
@@ -16,4 +22,5 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
+[0.1.1]: https://https://github.com/petrzpav/omarchy-setup/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/petrzpav/omarchy-setup/releases/tag/v0.1.0
