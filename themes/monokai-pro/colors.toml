@@ -6,7 +6,7 @@ selection = "#5b595c"
 muted = "#727072"
 
 # Calmer focused-window border than the yellow accent
-hyprland_active_border = "#939293"
+hyprland_active_border = "#c1c0c0"
 
 background = "#2d2a2e"
 dark_background = "#221f22"
