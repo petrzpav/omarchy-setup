@@ -30,6 +30,11 @@ o.bind("SUPER + W", "Hide window (SUPER + Q closes)", bin .. "app-hide")
 o.bind("SUPER + Q", "Close window", hl.dsp.window.close())
 o.bind("SUPER + Z", "Bring back the last hidden window", bin .. "app-unhide --last")
 o.bind("SUPER + ALT + W", "Hidden windows", bin .. "app-unhide")
+-- The browser keys open a new window each time, so they bring back a hidden one first.
+for _, keys in ipairs({ "SUPER + SHIFT + B", "SUPER + SHIFT + RETURN" }) do
+  hl.unbind(keys)
+  o.bind(keys, "Browser (brings back a hidden one first)", bin .. "app-unhide --browser")
+end
 hl.on("window.active", function(window)
   if window and window.workspace and window.workspace.name == "special:hidden" then
     hl.exec_cmd(bin .. "app-unhide --address " .. window.address)
