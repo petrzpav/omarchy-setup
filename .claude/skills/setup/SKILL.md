@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Finish the omarchy-setup on this machine with the person - restore files and settings from an old backup, monitors, keyboard and touchpad, git identity, lid and locking, automatic backups, optional apps and plugins, and a short tour of the keybindings. Use when invoked as /setup or when asked to finish or redo the Omarchy setup.
+description: Finish the omarchy-setup on this machine with the person - restore files and settings from an old backup, monitors, keyboard and touchpad, git identity, lid and locking, automatic backups, optional apps and plugins, remote access from the iPhone, and a short tour of the keybindings. Use when invoked as /setup or when asked to finish or redo the Omarchy setup.
 ---
 
 # Finish the Omarchy setup
@@ -110,6 +110,9 @@ back up a file before changing it (`cp f f.bak.$(date +%s)`); after any
      `o.bind("SUPER + SHIFT + K", "Slack", os.getenv("HOME") .. "/.local/bin/slack-window")`
      (Mail: `SUPER + SHIFT + E` with `mail-window`, after `hl.unbind("SUPER + SHIFT + E")`;
      Trello: `SUPER + SHIFT + R` with `trello-window`).
+   - **Remote access from the iPhone**: Tailscale plus the Heeler app, to watch
+     and answer the coding agents running in herdr from the phone. Only offer it if
+     they have an iPhone and use herdr. Follow [remote-access.md](remote-access.md).
    - **Wallpaper rotation**: wallswap is installed and swaps the background from
      Wallhaven every 180 minutes. Ask if they'd rather keep a fixed wallpaper; if
      so, `omarchy plugin disable petrzpav.wallswap`.

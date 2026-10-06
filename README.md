@@ -62,7 +62,7 @@ Without an agent, go through the steps in [`.claude/skills/setup/SKILL.md`](.cla
 monitors (`~/.config/hypr/monitors.lua`), keyboard (`~/.config/hypr/input.lua`),
 restoring from a backup and setting up backups ([backup.md](.claude/skills/setup/backup.md)),
 git identity, lid and idle locking, and the optional extras (dictation, fingerprint, AirPods, the Mail/Slack/Trello
-terminal apps).
+terminal apps, remote access from the iPhone via Tailscale + Heeler: [remote-access.md](.claude/skills/setup/remote-access.md)).
 
 Keybindings: [CHEATSHEET.md](CHEATSHEET.md).
 
