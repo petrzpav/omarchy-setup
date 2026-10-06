@@ -1,0 +1,91 @@
+#!/bin/bash
+#
+# app-unhide - bring a window hidden by app-hide (SUPER+W) back where it was: its workspace,
+# its tiled slot (next to the same neighbour, on the same side) or its floating geometry,
+# and focus it. Without a remembered place it comes to the current workspace.
+#
+#   app-unhide                  pick one of the hidden windows (SUPER+ALT+W)
+#   app-unhide --last           the window hidden last (SUPER+Z)
+#   app-unhide --address <a>    that window (hypr/team.lua runs it when a hidden one gets focus)
+#   app-unhide <class>          the hidden window of that class; does nothing if none is hidden
+
+state="${XDG_RUNTIME_DIR:-/tmp}/app-hide"
+d() { hyprctl dispatch "$1" >/dev/null; }
+
+clients=$(hyprctl clients -j)
+hidden() { jq -r "[.[] | select(.workspace.name == \"special:hidden\") | $1]" <<<"$clients"; }
+
+case "${1:-}" in
+--address) addr=$2 ;;
+--last)
+  for f in $(ls -t "$state"/*.json 2>/dev/null); do
+    a=$(basename "$f" .json)
+    hidden ".address" | jq -e --arg a "$a" 'index($a)' >/dev/null && { addr=$a; break; }
+  done
+  ;;
+"")
+  rows=$(hidden '"󰖯\t\(.title[:70])\t\(.class)  \(.address)"' | jq -r '.[]')
+  [[ -n $rows ]] || { notify-send -t 2000 "No hidden windows"; exit 0; }
+  pick=$(omarchy-menu-select 'Hidden windows' -- --width 700 <<<"$rows") || exit 0
+  addr=${pick##* }
+  ;;
+*) addr=$(hidden "select(.class == \"$1\") | .address" | jq -r '.[0] // empty') ;;
+esac
+[[ -n $addr ]] && jq -e --arg a "$addr" 'any(.[]; .address == $a and .workspace.name == "special:hidden")' \
+  <<<"$clients" >/dev/null || exit 0
+
+# Focusing a hidden window from elsewhere opens the hidden workspace on top; close it.
+hyprctl monitors -j | jq -e 'any(.[]; .specialWorkspace.name == "special:hidden")' >/dev/null &&
+  d 'hl.dsp.workspace.toggle_special("hidden")'
+
+saved=$(cat "$state/$addr.json" 2>/dev/null)
+rm -f "$state/$addr.json"
+ws=$(jq -r '.workspace // empty' <<<"$saved")
+[[ -n $ws && $ws != -* ]] || ws=$(hyprctl activeworkspace -j | jq -r .id)
+
+d "hl.dsp.focus({ workspace = \"$ws\" })"
+
+if [[ $(jq -r '.floating // false' <<<"$saved") == true ]]; then
+  read -r x y w h < <(jq -r '"\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"' <<<"$saved")
+  d "hl.dsp.window.move({ workspace = \"$ws\", window = \"address:$addr\" })"
+  d "hl.dsp.window.resize({ x = $w, y = $h, window = \"address:$addr\" })"
+  d "hl.dsp.window.move({ x = $x, y = $y, window = \"address:$addr\" })"
+  exit 0
+fi
+
+read -r neighbour side stack < <(jq -r '.neighbour // empty | "\(.address) \(.side) \(.stack)"' <<<"$saved")
+if [[ -z $neighbour ]] || ! jq -e --arg a "$neighbour" --argjson ws "$ws" \
+  'any(.[]; .address == $a and .workspace.id == $ws)' <<<"$clients" >/dev/null; then
+  d "hl.dsp.window.move({ workspace = \"$ws\", window = \"address:$addr\" })"
+  exit 0
+fi
+
+d "hl.dsp.focus({ window = \"address:$neighbour\" })"
+d "hl.dsp.layout(\"preselect $side\")"
+d "hl.dsp.window.move({ workspace = \"$ws\", window = \"address:$addr\" })"
+[[ $stack == true ]] || exit 0
+
+# Next to a stack: make the window one half of the workspace and try the split's other side
+# and orientation until it is back in place, then turn back any split in the stack that
+# moving it flipped. Windows opened or closed since hiding are left as they are.
+fits() { # <address>: is the window where it was when hidden?
+  hyprctl clients -j | jq -e --arg a "$1" --argjson s "$saved" '
+    ($s.layout[] | select(.address == $a)) as $o
+    | .[] | select(.address == $a)
+    | [.at[0] - $o.at[0], .at[1] - $o.at[1], .size[0] - $o.size[0], .size[1] - $o.size[1]]
+    | all(fabs <= 2)' >/dev/null
+}
+d 'hl.dsp.layout("movetoroot")'
+for fix in swapsplit togglesplit swapsplit; do
+  fits "$addr" && break
+  d "hl.dsp.layout(\"$fix\")"
+done
+for other in $(jq -r --arg a "$addr" '.layout[] | select(.address != $a) | .address' <<<"$saved"); do
+  fits "$other" && continue
+  d "hl.dsp.focus({ window = \"address:$other\" })"
+  for fix in togglesplit swapsplit togglesplit swapsplit; do # all four states, back to start
+    d "hl.dsp.layout(\"$fix\")"
+    fits "$other" && break
+  done
+done
+d "hl.dsp.focus({ window = \"address:$addr\" })"

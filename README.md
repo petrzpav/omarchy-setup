@@ -88,11 +88,14 @@ Keybindings: [CHEATSHEET.md](CHEATSHEET.md).
 ## Maintainer: keeping the repo in step
 
 On the maintainer's machine `tools/sync --watch` (a systemd user service, set up
-with `tools/sync --install-service`) watches the live config. A few seconds after a
-change it copies the shared parts into the repo, commits and pushes:
+with `tools/sync --install-service`) watches the live config. Once nothing has changed
+for five minutes it copies the shared parts into the repo and releases them the
+[Flow](https://github.com/internetguru/flow) way: a hotfix branch from `main`, released
+as a patch version with changelog entries (written by `claude -p`), merged back into
+`dev` and pushed. The checkout then returns to the branch it was on. What it shares:
 
 - theme `~/.config/omarchy/themes/monokai-pro`, the indicators plugin and the screen
-  recording scripts, copied as they are;
+  recording and window-hiding scripts, copied as they are;
 - the bar layout from `~/.config/omarchy/shell.json`, without personal widgets
   (listed in `PERSONAL_WIDGETS` in `tools/sync`);
 - `hypr/team.lua`, which the maintainer's Hyprland loads straight from the repo;
@@ -101,5 +104,7 @@ change it copies the shared parts into the repo, commits and pushes:
 - `packages.txt`: packages installed on top of Omarchy, minus Omarchy's own and the
   personal ones in `PERSONAL_PACKAGES`, refreshed after every pacman run.
 
-A commit that looks like it contains a credential is refused, with a notification.
+A change that looks like it contains a credential is refused, with a notification. So is
+a sync while the repo has other uncommitted work, and any failed Flow step; the synced
+changes then wait in a git stash, named in the notification.
 Logs: `journalctl --user -u omarchy-setup-sync -f`.
