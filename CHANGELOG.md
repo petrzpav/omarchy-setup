@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-10-06
+
+### Changed
+
+- Web app keys such as Super + Shift + X bring back the web app hidden with Super + W instead of opening it again.
+
 ## [0.1.5] - 2026-10-06
 
 ### Fixed
@@ -53,6 +59,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
 [0.1.1]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.0...v0.1.1
+[0.1.6]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.2...v0.1.3
