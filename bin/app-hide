@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+# app-hide - hide the focused window on the special:hidden workspace instead of closing it
+# (SUPER+W), so its app keeps running and comes back instantly. Remembers where the window
+# was (workspace, floating geometry, or the tiled neighbour and side) for app-unhide.
+
+state="${XDG_RUNTIME_DIR:-/tmp}/app-hide"
+mkdir -p "$state"
+
+win=$(hyprctl activewindow -j)
+addr=$(jq -r '.address // empty' <<<"$win")
+[[ -n $addr ]] || exit 0
+
+# A tiled neighbour that shares the window's whole edge is its sibling in the layout:
+# preselecting that side on it puts the window back into the same slot. When the edge is
+# shared by several windows (the sibling is a stack), remember one of them with `stack`, so
+# app-unhide moves the window up to the layout root and flips the split until it fits.
+hyprctl clients -j | jq --argjson w "$win" '
+  def same(a1; a2; b1; b2): (a1 - b1 | fabs) <= 2 and (a2 - b2 | fabs) <= 2;
+  def touch(a1; a2; b1; b2): a1 < b2 and b1 < a2;
+  . as $all | ($w.at[0]) as $x | ($w.at[1]) as $y | ($w.at[0] + $w.size[0]) as $r | ($w.at[1] + $w.size[1]) as $b
+  | [ .[] | select(.workspace.id == $w.workspace.id and .address != $w.address and (.floating | not))
+      | (.at[0]) as $nx | (.at[1]) as $ny | (.at[0] + .size[0]) as $nr | (.at[1] + .size[1]) as $nb
+      | if   $x >= $nr and touch($y; $b; $ny; $nb) then {address, side: "r", stack: (same($y; $b; $ny; $nb) | not)}
+        elif $r <= $nx and touch($y; $b; $ny; $nb) then {address, side: "l", stack: (same($y; $b; $ny; $nb) | not)}
+        elif $y >= $nb and touch($x; $r; $nx; $nr) then {address, side: "d", stack: (same($x; $r; $nx; $nr) | not)}
+        elif $b <= $ny and touch($x; $r; $nx; $nr) then {address, side: "u", stack: (same($x; $r; $nx; $nr) | not)}
+        else empty end ] | sort_by(.stack) | .[0] as $n
+  | [ $all[] | select(.workspace.id == $w.workspace.id and (.floating | not)) | {address, at, size} ] as $layout
+  | {workspace: $w.workspace.id, floating: $w.floating, at: $w.at, size: $w.size, neighbour: $n, layout: $layout}
+' >"$state/$addr.json"
+
+hyprctl dispatch "hl.dsp.window.move({ workspace = \"special:hidden\", follow = false, window = \"address:$addr\" })" >/dev/null

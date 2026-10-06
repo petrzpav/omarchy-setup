@@ -19,5 +19,19 @@ hl.config({
 o.bind("CTRL + ALT + R", "Start/stop screen recording with mic (crash-safe)", bin .. "screenrecord-session")
 o.bind("CTRL + ALT + P", "Pause/resume screen recording", bin .. "screenrecord-pause-toggle")
 
--- Herdr (default stays on SUPER + CTRL + RETURN)
-o.bind("SUPER + SHIFT + H", "Herdr", { omarchy = "terminal-herdr" })
+-- Herdr in its own window: focused when open, started when not (default stays on SUPER + CTRL + RETURN)
+o.bind("SUPER + SHIFT + H", "Herdr", { tui = "herdr", focus = true })
+
+-- SUPER + W hides the window instead of closing it: the app keeps running, and whatever
+-- focuses it again (its launcher, a notification, SUPER + Z, SUPER + ALT + W) puts it back
+-- where it was, so reopening is instant. SUPER + Q really closes it.
+hl.unbind("SUPER + W")
+o.bind("SUPER + W", "Hide window (SUPER + Q closes)", bin .. "app-hide")
+o.bind("SUPER + Q", "Close window", hl.dsp.window.close())
+o.bind("SUPER + Z", "Bring back the last hidden window", bin .. "app-unhide --last")
+o.bind("SUPER + ALT + W", "Hidden windows", bin .. "app-unhide")
+hl.on("window.active", function(window)
+  if window and window.workspace and window.workspace.name == "special:hidden" then
+    hl.exec_cmd(bin .. "app-unhide --address " .. window.address)
+  end
+end)
