@@ -35,6 +35,21 @@ for _, keys in ipairs({ "SUPER + SHIFT + B", "SUPER + SHIFT + RETURN" }) do
   hl.unbind(keys)
   o.bind(keys, "Browser (brings back a hidden one first)", bin .. "app-unhide --browser")
 end
+-- So do Omarchy's web app keys (SUPER + SHIFT + X and the like). Rerun its own application
+-- bindings with the web app launcher swapped, keeping only the plain web app keys, so the
+-- list stays Omarchy's. Web apps bound with `focus` already come back through the hook below.
+do
+  local bind, launch_webapp = o.bind, o.launch_webapp
+  o.launch_webapp = function(url) return bin .. "app-unhide --webapp " .. o.shell_quote(url) end
+  o.bind = function(keys, description, dispatcher, options)
+    if type(dispatcher) == "table" and dispatcher.webapp and not dispatcher.focus then
+      hl.unbind(keys)
+      bind(keys, description, dispatcher, options)
+    end
+  end
+  pcall(dofile, (os.getenv("OMARCHY_PATH") or "/usr/share/omarchy") .. "/default/hypr/bindings/applications.lua")
+  o.bind, o.launch_webapp = bind, launch_webapp
+end
 hl.on("window.active", function(window)
   if window and window.workspace and window.workspace.name == "special:hidden" then
     hl.exec_cmd(bin .. "app-unhide --address " .. window.address)

@@ -9,6 +9,8 @@
 #   app-unhide --address <a>    that window (hypr/team.lua runs it when a hidden one gets focus)
 #   app-unhide --browser        the default browser's window hidden last, or a new browser
 #                               window when none is hidden (SUPER+SHIFT+B)
+#   app-unhide --webapp <url>   that web app's window hidden last, or the web app opened anew
+#                               when none is hidden (Omarchy's web app keys, e.g. SUPER+SHIFT+X)
 #   app-unhide <class>          the hidden window of that class; exits 1 if none is hidden
 
 state="${XDG_RUNTIME_DIR:-/tmp}/app-hide"
@@ -44,6 +46,15 @@ case "${1:-}" in
   exe=$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/"$desktop" 2>/dev/null | head -1)
   addr=$(last_hidden "^$(basename "${exe:-browser}" -stable)")
   [[ -n $addr ]] || exec omarchy-launch-browser 9>&-
+  ;;
+--webapp)
+  # A web app's window class is the browser, host and path: https://x.com/compose/post
+  # opens as chrome-x.com__compose_post-Default (brave-…, google-chrome-… alike).
+  url=${2#*://}; url=${url%%[?#]*}
+  host=${url%%/*}; path=${url#"$host"}
+  key="${host}_${path:-/}"; key=${key//\//_}
+  addr=$(last_hidden "-${key//./[.]}-[^-]+\$")
+  [[ -n $addr ]] || exec omarchy-launch-webapp "$2" 9>&-
   ;;
 "")
   rows=$(hidden '"󰖯\t\(.title[:70])\t\(.class)  \(.address)"' | jq -r '.[]')
