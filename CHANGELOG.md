@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
 ## [0.1.0] - 2026-10-06
 
 ### Added
@@ -13,4 +15,5 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Restore from an old computer's backup, and automatic local / USB restic backups.
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
+[Unreleased]: https://https://github.com/petrzpav/omarchy-setup/compare/staging...dev
 [0.1.0]: https://github.com/petrzpav/omarchy-setup/releases/tag/v0.1.0
