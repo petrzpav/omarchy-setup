@@ -1,17 +1,35 @@
 #!/bin/bash
-# Search-first space switcher for herdr: fzf over workspace names, Enter focuses.
+# Search-first switcher for herdr: fzf over agents first, then spaces; Enter focuses.
 # herdr's built-in goto picker needs "/" before typing filters; this starts in search.
 
-id=$(
-  herdr workspace list |
-    python3 -c '
-import json, sys
-spaces = json.load(sys.stdin)["result"]["workspaces"]
+pick=$(
+  python3 -c '
+import json, subprocess
+
+def run(*args):
+    return json.loads(subprocess.run(["herdr", *args], capture_output=True, text=True).stdout)["result"]
+
+spaces = run("workspace", "list")["workspaces"]
+labels = {w["workspace_id"]: w["label"] for w in spaces}
+
+agents = run("agent", "list")["agents"]
+for a in sorted(agents, key=lambda a: (labels.get(a["workspace_id"], "").casefold(), a["pane_id"])):
+    title = a.get("terminal_title_stripped") or a["agent"]
+    space = labels.get(a["workspace_id"], "?")
+    print("agent", a["pane_id"], "● " + space + " · " + title + " [" + a["agent_status"] + "]", sep="\t")
+
 for w in sorted(spaces, key=lambda w: w["label"].casefold()):
-    print(w["workspace_id"], w["label"], sep="\t")
+    print("space", w["workspace_id"], w["label"], sep="\t")
 ' |
-    fzf --delimiter='\t' --with-nth=2 --reverse --no-info --prompt='space> ' |
-    cut -f1
+    fzf --delimiter='\t' --with-nth=3 --reverse --no-info --prompt='goto> ' |
+    cut -f1,2
 )
 
-[[ -n $id ]] && herdr workspace focus "$id" >/dev/null
+[[ -z $pick ]] && exit
+kind=${pick%%$'\t'*}
+id=${pick#*$'\t'}
+if [[ $kind == agent ]]; then
+  herdr agent focus "$id" >/dev/null
+else
+  herdr workspace focus "$id" >/dev/null
+fi

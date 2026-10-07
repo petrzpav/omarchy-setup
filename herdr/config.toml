@@ -109,7 +109,7 @@ key = "prefix+s"
 type = "shell"
 command = "~/.local/bin/herdr-sort-spaces"
 
-# ctrl+p: search-first space switcher (fzf popup); built-in goto stays on prefix+g
+# ctrl+p: search-first agent + space switcher (fzf popup, agents first); built-in goto stays on prefix+g
 [[keys.command]]
 key = "ctrl+p"
 type = "popup"
