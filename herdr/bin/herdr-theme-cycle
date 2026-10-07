@@ -1,0 +1,42 @@
+#!/bin/bash
+# Cycle herdr's [theme] name through the built-in themes and reload the server.
+# Usage: herdr-theme-cycle [next|prev]
+
+config="$HOME/.config/herdr/config.toml"
+themes=(
+  terminal
+  catppuccin catppuccin-latte
+  tokyo-night tokyo-night-day
+  dracula nord vesper
+  gruvbox gruvbox-light
+  one-dark one-light
+  solarized solarized-light
+  kanagawa kanagawa-lotus
+  rose-pine rose-pine-dawn
+)
+
+# Current name = first `name = "..."` inside the [theme] section
+current=$(awk '/^\[/{s=($0=="[theme]")} s && /^name *=/{gsub(/.*= *"|".*/,""); print; exit}' "$config")
+
+idx=0
+for i in "${!themes[@]}"; do
+  [[ ${themes[$i]} == "$current" ]] && idx=$i && break
+done
+
+n=${#themes[@]}
+if [[ $1 == prev ]]; then
+  idx=$(((idx - 1 + n) % n))
+else
+  idx=$(((idx + 1) % n))
+fi
+new=${themes[$idx]}
+
+awk -v new="$new" '
+  /^\[/ { s = ($0 == "[theme]") }
+  s && /^name *=/ && !done { print "name = \"" new "\""; done = 1; next }
+  { print }
+' "$config" >"$config.tmp" && mv "$config.tmp" "$config"
+
+herdr server reload-config >/dev/null 2>&1
+herdr notification show "Theme: $new" --body "$((idx + 1))/$n" >/dev/null 2>&1 ||
+  notify-send "herdr theme" "$new"

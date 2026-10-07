@@ -1,0 +1,17 @@
+#!/bin/bash
+# Search-first space switcher for herdr: fzf over workspace names, Enter focuses.
+# herdr's built-in goto picker needs "/" before typing filters; this starts in search.
+
+id=$(
+  herdr workspace list |
+    python3 -c '
+import json, sys
+spaces = json.load(sys.stdin)["result"]["workspaces"]
+for w in sorted(spaces, key=lambda w: w["label"].casefold()):
+    print(w["workspace_id"], w["label"], sep="\t")
+' |
+    fzf --delimiter='\t' --with-nth=2 --reverse --no-info --prompt='space> ' |
+    cut -f1
+)
+
+[[ -n $id ]] && herdr workspace focus "$id" >/dev/null

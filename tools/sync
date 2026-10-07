@@ -7,7 +7,7 @@
 #   tools/sync --install-service  install and start the systemd user service
 #   tools/sync --remove-service   stop and remove it
 #
-# What is shared is listed in SOURCES below, plus the bar layout and packages.txt
+# What is shared is listed in SOURCES below, plus the bar layout, herdr's config.toml and packages.txt
 # (installed packages minus Omarchy's own and PERSONAL_PACKAGES). Shared Hyprland settings are not
 # copied: they live in hypr/team.lua, which the maintainer's hyprland.lua loads
 # straight from this repo, so editing it is editing the live config.
@@ -39,8 +39,13 @@ SOURCES=(
   "$HOME/.local/bin/backup-usb|extras/backup/backup-usb"
   "$CFG/omarchy/bar/scripts/backup-progress|extras/backup/backup-progress"
   "$CFG/systemd/user/backup-usb.timer|extras/backup/backup-usb.timer"
+  "$HOME/.local/bin/herdr-goto|herdr/bin/herdr-goto"
+  "$HOME/.local/bin/herdr-sort-spaces|herdr/bin/herdr-sort-spaces"
+  "$HOME/.local/bin/herdr-theme-cycle|herdr/bin/herdr-theme-cycle"
+  "$CFG/herdr/local-plugins/persistent-spaces|herdr/plugins/persistent-spaces"
 )
 SHELL_JSON="$CFG/omarchy/shell.json"
+HERDR_CONFIG="$CFG/herdr/config.toml"
 
 # Bar widgets and indicator items that are personal (accounts, hardware,
 # scripts that aren't in this repo). They are dropped from shell/bar.json.
@@ -72,6 +77,12 @@ export_bar() {
   ' "$SHELL_JSON"
 }
 
+# herdr config.toml without the personal Laravel dev binding: the block from
+# its "# Laravel localhost dev" comment up to the next blank line.
+export_herdr_config() {
+  awk '/^# Laravel localhost dev/ { skip = 1 } skip && /^$/ { skip = 0; next } !skip' "$HERDR_CONFIG"
+}
+
 # Explicitly installed packages minus Omarchy's own lists minus PERSONAL_PACKAGES,
 # one per line with pacman's description; AUR packages get an "aur:" prefix.
 export_packages() {
@@ -94,10 +105,11 @@ copy_sources() {
     src="${entry%%|*}" dst="$REPO/${entry#*|}"
     [[ -e $src ]] || { log "missing, skipped: $src"; continue; }
     if [[ -d $src ]]; then
-      rsync -a --delete --exclude '*.bak.*' --exclude '.git' $( ((DRY)) && echo --dry-run -i) "$src/" "$dst/"
+      rsync -a --delete --exclude '*.bak.*' --exclude '.git' --exclude '__pycache__' $( ((DRY)) && echo --dry-run -i) "$src/" "$dst/"
     elif ((DRY)); then
       cmp -s "$src" "$dst" || echo "would update ${entry#*|}"
     else
+      mkdir -p "$(dirname "$dst")"
       cp -a "$src" "$dst"
     fi
   done
@@ -106,6 +118,12 @@ copy_sources() {
   bar="$(export_bar)"
   if [[ $bar != "$(jq . "$REPO/shell/bar.json")" ]]; then
     if ((DRY)); then echo "would update shell/bar.json"; else printf '%s\n' "$bar" >"$REPO/shell/bar.json"; fi
+  fi
+
+  local herdr
+  herdr="$(export_herdr_config)"
+  if [[ $herdr != "$(cat "$REPO/herdr/config.toml" 2>/dev/null)" ]]; then
+    if ((DRY)); then echo "would update herdr/config.toml"; else printf '%s\n' "$herdr" >"$REPO/herdr/config.toml"; fi
   fi
 
   local pkgs
@@ -126,7 +144,7 @@ secrets_in_staged() {
 # Repo paths sync writes; nothing else in the checkout is ever staged.
 synced_paths() {
   local entry path
-  for path in $(for entry in "${SOURCES[@]}"; do echo "${entry#*|}"; done) shell/bar.json packages.txt hypr; do
+  for path in $(for entry in "${SOURCES[@]}"; do echo "${entry#*|}"; done) shell/bar.json herdr/config.toml packages.txt hypr; do
     [[ -e $REPO/$path ]] && echo "$path"
   done
   true
@@ -153,6 +171,7 @@ $diff" 2>/dev/null | grep -E '^(Added|Changed|Deprecated|Removed|Fixed|Security)
     extras) echo "Changed: The optional extras (lid switch, backups) are updated." ;;
     shell) echo "Changed: The bar layout is updated." ;;
     hypr) echo "Changed: The shared Hyprland settings and keybindings are updated." ;;
+    herdr) echo "Changed: The herdr setup (config, keybindings, scripts, persistent spaces) is updated." ;;
     esac
   done
   pkgs="$(git diff --cached -U0 -- packages.txt | sed -n 's/^+\([^+#[:space:]][^[:space:]]*\).*/\1/p' | paste -sd ',' | sed 's/,/, /g')"
@@ -233,7 +252,7 @@ sync_once() {
 }
 
 watch() {
-  local -a paths=("$SHELL_JSON" "$REPO/hypr" /var/log/pacman.log)
+  local -a paths=("$SHELL_JSON" "$HERDR_CONFIG" "$REPO/hypr" /var/log/pacman.log)
   local entry
   for entry in "${SOURCES[@]}"; do paths+=("${entry%%|*}"); done
 
