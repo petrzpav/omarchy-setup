@@ -98,6 +98,30 @@ if [[ -z $neighbour ]] || ! jq -e --arg a "$neighbour" --argjson ws "$ws" \
 fi
 
 d "hl.dsp.focus({ window = \"address:$neighbour\" })"
+
+# The scrolling layout ignores preselect: a window moved in always lands in a new column to
+# the right of the focused one. Shift its column left, or move it into the neighbour's column
+# and up, until it sits on the remembered side.
+layout=$(hyprctl workspaces -j | jq -r --argjson ws "$ws" '.[] | select(.id == $ws) | .tiledLayout')
+if [[ $layout == scrolling ]]; then
+  d "hl.dsp.window.move({ workspace = \"$ws\", window = \"address:$addr\" })"
+  d "hl.dsp.focus({ window = \"address:$addr\" })"
+  case $side in
+  l) d 'hl.dsp.layout("swapcol l")' ;;
+  u | d)
+    d 'hl.dsp.window.move({ direction = "l" })' # joins the neighbour's column at the bottom
+    for _ in 1 2 3 4 5 6; do # up to right above (u) or right below (d) the neighbour
+      hyprctl clients -j | jq -e --arg a "$addr" --arg n "$neighbour" --arg side "$side" '
+        (.[] | select(.address == $a)) as $w | (.[] | select(.address == $n)) as $n
+        | if $side == "u" then $w.at[1] < $n.at[1] else $w.at[1] - ($n.at[1] + $n.size[1]) < 50 end' \
+        >/dev/null && break
+      d 'hl.dsp.window.swap({ direction = "u" })'
+    done
+    ;;
+  esac
+  exit 0
+fi
+
 d "hl.dsp.layout(\"preselect $side\")"
 d "hl.dsp.window.move({ workspace = \"$ws\", window = \"address:$addr\" })"
 [[ $stack == true ]] || exit 0
