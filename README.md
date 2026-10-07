@@ -37,6 +37,7 @@ git clone https://github.com/petrzpav/omarchy-setup.git ~/.local/share/omarchy-s
 | `hypr` | Adds a line to `~/.config/hypr/hyprland.lua` that loads [`hypr/team.lua`](hypr/team.lua) (gaps, rounding, keybindings); copies the screen recording scripts to `~/.local/bin` |
 | `plugins` | Installs the bar plugins [omapager](https://github.com/njpatel/omapager), [wallswap](https://github.com/petrzpav/omarchy-wallswap) and the bundled `petrzpav.indicators` |
 | `bar` | Replaces the `bar` section of `~/.config/omarchy/shell.json` with [`shell/bar.json`](shell/bar.json); your other shell settings stay |
+| `herdr` | Replaces `~/.config/herdr/config.toml` with [`herdr/config.toml`](herdr/config.toml) (tmux-like keys on Ctrl + Space); copies the space switcher, sort and theme scripts to `~/.local/bin`; links the [persistent spaces](herdr/plugins/persistent-spaces) plugin |
 
 Run only some modules with `./install theme bar`; list them with `./install --list`.
 Every run backs up each file it touches to `~/.local/state/omarchy-setup/backups/`.
@@ -101,6 +102,8 @@ as a patch version with changelog entries (written by `claude -p`), merged back 
 - `hypr/team.lua`, which the maintainer's Hyprland loads straight from the repo;
 - the backup script, timer and bar script in `extras/backup/` (its settings,
   `~/.config/restic/backup.conf`, stay private);
+- the herdr setup in `herdr/`: `~/.config/herdr/config.toml` without the personal
+  Laravel dev binding, the `herdr-*` scripts and the persistent spaces plugin;
 - `packages.txt`: packages installed on top of Omarchy, minus Omarchy's own and the
   personal ones in `PERSONAL_PACKAGES`, refreshed after every pacman run.
 

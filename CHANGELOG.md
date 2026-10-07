@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-10-07
+
+### Added
+
+- Herdr spaces are permanent: closing the last tab or pane, or Ctrl + D, gives the space a fresh shell, and only Prefix, Shift + K deletes it.
+- The herdr module brings the herdr setup: tmux-like keys on Ctrl + Space, Ctrl + P to find a space, and sorting and theme switching.
+
 ## [0.1.6] - 2026-10-06
 
 ### Changed
@@ -59,6 +66,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
 [0.1.1]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.0...v0.1.1
+[0.1.7]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.3...v0.1.4

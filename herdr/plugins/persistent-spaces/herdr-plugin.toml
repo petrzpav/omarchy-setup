@@ -1,0 +1,56 @@
+id = "petrzpav.persistent-spaces"
+name = "Persistent spaces"
+version = "0.1.0"
+min_herdr_version = "0.8.0"
+description = "Spaces survive closing their last tab or pane; only the delete action removes one"
+platforms = ["linux", "macos"]
+
+# Remember every space's name, directory and position
+[[startup]]
+command = ["python3", "-I", "spaces.py", "remember"]
+
+[[events]]
+on = "workspace.created"
+command = ["python3", "-I", "spaces.py", "remember"]
+
+[[events]]
+on = "workspace.renamed"
+command = ["python3", "-I", "spaces.py", "remember"]
+
+[[events]]
+on = "workspace.moved"
+command = ["python3", "-I", "spaces.py", "remember"]
+
+[[events]]
+on = "workspace.reordered"
+command = ["python3", "-I", "spaces.py", "remember"]
+
+[[events]]
+on = "workspace.focused"
+command = ["python3", "-I", "spaces.py", "remember"]
+
+# Recreate a space that closed without the delete action. A shell exit
+# (ctrl+d) on the last pane removes the space without workspace.closed, so
+# the pane and tab events check whether their space is gone too.
+[[events]]
+on = "workspace.closed"
+command = ["python3", "-I", "spaces.py", "closed"]
+
+[[events]]
+on = "tab.closed"
+command = ["python3", "-I", "spaces.py", "closed"]
+
+[[events]]
+on = "pane.closed"
+command = ["python3", "-I", "spaces.py", "closed"]
+
+[[events]]
+on = "pane.exited"
+command = ["python3", "-I", "spaces.py", "closed"]
+
+[[actions]]
+id = "delete"
+title = "Delete space"
+description = "Close the current space for good"
+contexts = ["workspace", "global"]
+command = ["python3", "-I", "spaces.py", "delete"]
