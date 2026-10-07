@@ -15,6 +15,24 @@ All bindings, searchable: **Super + K**.
 | Super + Alt + W | Hidden windows: pick one to bring back |
 | Super + Shift + B | Browser: brings back a hidden browser window, or opens a new one |
 
+## Herdr
+
+Prefix is **Ctrl + Space**, the rest follows tmux.
+
+| Keys | What |
+|---|---|
+| Ctrl + P | Find a space and switch to it |
+| Alt + Up / Down | Previous / next space |
+| Prefix, Shift + C | New space |
+| Prefix, Shift + K | Delete the space (closing its last tab or pane, or Ctrl + D, only gives it a fresh shell) |
+| Prefix, S | Sort the spaces by name |
+| Ctrl + T / Ctrl + W | New / close tab |
+| Alt + Left / Right | Previous / next tab |
+| Alt + Enter | Split |
+| Ctrl + Alt + arrows | Move between panes |
+| Ctrl + B | Show/hide the sidebar |
+| Prefix, T | Next herdr theme |
+
 ## Omarchy essentials
 
 | Keys | What |

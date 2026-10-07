@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+# Reorder herdr spaces (workspaces) alphabetically by name via the socket API.
+import json
+import os
+import socket
+
+SOCK = os.environ.get("HERDR_SOCKET_PATH") or os.path.expanduser("~/.config/herdr/herdr.sock")
+
+
+def call(method, params, n=[0]):
+    n[0] += 1
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+        s.connect(SOCK)
+        s.sendall((json.dumps({"id": f"sort:{n[0]}", "method": method, "params": params}) + "\n").encode())
+        buf = b""
+        while not buf.endswith(b"\n"):
+            chunk = s.recv(65536)
+            if not chunk:
+                break
+            buf += chunk
+    resp = json.loads(buf)
+    if "error" in resp:
+        raise SystemExit(f"{method}: {resp['error']}")
+    return resp["result"]
+
+
+spaces = call("workspace.list", {})["workspaces"]
+for i, ws in enumerate(sorted(spaces, key=lambda w: w["label"].casefold())):
+    call("workspace.move", {"workspace_id": ws["workspace_id"], "insert_index": i})

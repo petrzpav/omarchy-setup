@@ -17,7 +17,7 @@ STATE="$HOME/.local/state/omarchy-setup"
 BACKUPS="$STATE/backups"
 CFG="$HOME/.config"
 export OMARCHY_PATH="${OMARCHY_PATH:-/usr/share/omarchy}"
-MODULES=(packages theme hypr plugins bar)
+MODULES=(packages theme hypr plugins bar herdr)
 
 declare -A ABOUT=(
   [packages]="Extra apps and tools from packages.txt (missing ones only)"
@@ -25,6 +25,7 @@ declare -A ABOUT=(
   [hypr]="Gaps, rounded corners, keybindings, crash-safe screen recording"
   [plugins]="Bar plugins: omapager, wallswap, indicators"
   [bar]="Bar layout: bottom, transparent, pager + indicators in the center"
+  [herdr]="herdr: tmux-like keys, space switcher, persistent spaces"
 )
 
 DRY=0
@@ -171,6 +172,26 @@ mod_bar() {
   else
     printf '%s\n' "$merged" >"$shell"
   fi
+}
+
+mod_herdr() {
+  command -v herdr >/dev/null || { skip "herdr is not installed"; return 0; }
+  sync herdr/config.toml "$CFG/herdr/config.toml"
+  local f
+  for f in herdr-goto herdr-sort-spaces herdr-theme-cycle; do
+    sync "herdr/bin/$f" "$HOME/.local/bin/$f"
+  done
+
+  # Spaces survive closing their last tab or pane; prefix+shift+k deletes one.
+  local plugin="$CFG/herdr/local-plugins/persistent-spaces"
+  sync herdr/plugins/persistent-spaces "$plugin"
+  if herdr plugin list 2>/dev/null | grep -q '^- petrzpav.persistent-spaces '; then
+    skip "herdr plugin petrzpav.persistent-spaces is linked"
+  else
+    step "herdr plugin link $(tilde "$plugin")"
+    run herdr plugin link "$plugin" >/dev/null
+  fi
+  ((DRY)) || herdr server reload-config >/dev/null 2>&1 || true
 }
 
 # ── restore ──────────────────────────────────────────────────────────────────
