@@ -2,10 +2,18 @@
   "centerAnchor": "omarchy.clock",
   "layout": {
     "center": [
-      { "id": "njpatel.omapager" },
+      {
+        "id": "njpatel.omapager"
+      },
       {
         "id": "petrzpav.indicators",
-        "items": ["Dictation", "ScreenRecording", "Reminder", "NightLight", "StayAwake"]
+        "items": [
+          "Dictation",
+          "ScreenRecording",
+          "Reminder",
+          "NightLight",
+          "StayAwake"
+        ]
       },
       {
         "format": "dddd HH:mm",
@@ -13,23 +21,59 @@
         "id": "omarchy.clock",
         "verticalFormat": "HH\n—\nmm"
       },
-      { "id": "omarchy.keyboard-layout" },
-      { "id": "omarchy.weather" },
-      { "id": "omarchy.system-update" }
+      {
+        "id": "omarchy.keyboard-layout"
+      },
+      {
+        "id": "omarchy.weather"
+      },
+      {
+        "id": "omarchy.system-update"
+      }
     ],
     "left": [
-      { "id": "omarchy.menu" },
-      { "id": "omarchy.workspaces" }
+      {
+        "id": "omarchy.menu"
+      },
+      {
+        "id": "omarchy.workspaces"
+      }
     ],
     "right": [
-      { "id": "omarchy.tray" },
-      { "id": "petrzpav.wallswap", "interval": "180", "sources": "wallhaven" },
-      { "id": "omarchy.agents" },
-      { "id": "omarchy.bluetooth" },
-      { "id": "omarchy.network" },
-      { "id": "omarchy.audio" },
-      { "id": "omarchy.monitor" },
-      { "id": "omarchy.power" }
+      {
+        "id": "omarchy.tray"
+      },
+      {
+        "exec": "~/.config/omarchy/plugins/petrzpav.alerts/bin/alerts-bar",
+        "id": "alerts",
+        "interval": 10,
+        "onClick": "omarchy-launch-floating-terminal-with-presentation ~/.config/omarchy/plugins/petrzpav.alerts/bin/alerts-panel",
+        "tooltip": "Alerts",
+        "type": "command"
+      },
+      {
+        "id": "petrzpav.wallswap",
+        "interval": "180",
+        "sources": "wallhaven"
+      },
+      {
+        "id": "omarchy.agents"
+      },
+      {
+        "id": "omarchy.bluetooth"
+      },
+      {
+        "id": "omarchy.network"
+      },
+      {
+        "id": "omarchy.audio"
+      },
+      {
+        "id": "omarchy.monitor"
+      },
+      {
+        "id": "omarchy.power"
+      }
     ]
   },
   "position": "bottom",
