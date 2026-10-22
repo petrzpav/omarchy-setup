@@ -3,4 +3,5 @@ ansible                      # Official assortment of Ansible collections
 composer                     # Dependency Manager for PHP
 aur:flea-bin                 # Fast, keyboard-first file manager for Omarchy (prebuilt binary)
 ghostty                      # Fast, native, feature-rich terminal emulator pushing modern features
+aur:google-cloud-cli         # A core set of command-line tools for the Google Cloud Platform. Includes only gcloud core (with beta and alpha commands), gcloud-crc32c and man pages
 python-pillow                # Python Imaging Library (PIL) fork
