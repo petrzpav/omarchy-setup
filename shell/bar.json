@@ -54,7 +54,7 @@
       {
         "id": "petrzpav.wallswap",
         "interval": "180",
-        "sources": "wallhaven"
+        "sources": "wikimedia"
       },
       {
         "id": "omarchy.agents"
