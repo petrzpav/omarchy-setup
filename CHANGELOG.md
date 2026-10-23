@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-10-23
+
+### Changed
+
+- The bar layout is updated.
+
 ## [0.1.12] - 2026-10-22
 
 ### Changed
@@ -95,6 +101,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
+[0.1.13]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.9...v0.1.10
