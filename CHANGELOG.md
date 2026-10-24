@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.15] - 2026-10-24
+
+### Added
+
+- Packages intel-compute-runtime, level-zero-loader.
+
 ## [0.1.14] - 2026-10-24
 
 ### Changed
@@ -104,6 +110,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Restore from an old computer's backup, and automatic local / USB restic backups.
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
+[0.1.15]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.11...v0.1.12
