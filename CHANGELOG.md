@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.15] - 2026-10-24
+
+### Added
+
+- Packages intel-compute-runtime, level-zero-loader.
+
 ## [0.1.14] - 2026-10-24
 
 ### Changed
@@ -107,6 +113,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
+[0.1.15]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.11...v0.1.12
