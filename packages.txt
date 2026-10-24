@@ -4,4 +4,6 @@ composer                     # Dependency Manager for PHP
 aur:flea-bin                 # Fast, keyboard-first file manager for Omarchy (prebuilt binary)
 ghostty                      # Fast, native, feature-rich terminal emulator pushing modern features
 aur:google-cloud-cli         # A core set of command-line tools for the Google Cloud Platform. Includes only gcloud core (with beta and alpha commands), gcloud-crc32c and man pages
+intel-compute-runtime        # Intel(R) Graphics Compute Runtime for oneAPI Level Zero and OpenCL(TM) Driver
+level-zero-loader            # API for accessing low level interfaces in oneAPI platform devices (loader)
 python-pillow                # Python Imaging Library (PIL) fork
