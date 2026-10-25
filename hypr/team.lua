@@ -22,6 +22,21 @@ o.bind("CTRL + ALT + P", "Pause/resume screen recording", bin .. "screenrecord-p
 -- Herdr in its own window: focused when open, started when not (default stays on SUPER + CTRL + RETURN)
 o.bind("SUPER + SHIFT + H", "Herdr", { tui = "herdr", focus = true })
 
+-- CTRL + P in the herdr window: search-first agent + space switcher across all herdr machines
+-- (fzf in a floating terminal). Bound here, not in herdr's config.toml, because herdr runs its
+-- popup commands on the machine it shows. Every other window gets CTRL + P as usual.
+o.bind("CTRL + P", "Herdr: go to agent or space", function()
+  local window = hl.get_active_window()
+  if window and window.class == "org.omarchy.herdr" then
+    hl.exec_cmd("uwsm-app -- xdg-terminal-exec --app-id=org.omarchy.terminal --title=herdr-goto -e " .. bin .. "herdr-goto")
+  else
+    hl.dispatch(hl.dsp.send_key_state({ mods = "CTRL", key = "P", state = "down" }))
+    hl.timer(function()
+      hl.dispatch(hl.dsp.send_key_state({ mods = "CTRL", key = "P", state = "up" }))
+    end, { timeout = 50, type = "oneshot" })
+  end
+end)
+
 -- SUPER + W hides the window instead of closing it: the app keeps running, and whatever
 -- focuses it again (its launcher, a notification, SUPER + Z, SUPER + ALT + W) puts it back
 -- where it was, so reopening is instant. SUPER + Q really closes it.
