@@ -1,35 +1,256 @@
-#!/bin/bash
+#!/usr/bin/env python3
 # Search-first switcher for herdr: fzf over agents first, then spaces; Enter focuses.
 # herdr's built-in goto picker needs "/" before typing filters; this starts in search.
+#
+# Runs outside herdr, in a floating terminal opened by CTRL + P in the herdr window
+# (Hyprland binding in hypr/team.lua), so it works whichever machine the window shows.
+# herdr's own popup commands run on the machine being shown, so a ctrl+p in config.toml
+# would only work while viewing this PC.
+#
+# Lists Local and every enabled saved machine (`herdr machine list`). Local rows show at
+# once; a machine's rows are added when it answers over SSH. The window's title
+# (`window_title`, rendered by the server it shows) tells which space it is on. A pick on
+# that machine is just focused there. herdr has no API to switch which machine the
+# window shows, so for a pick on another machine the window is walked there with the
+# workspace keys below, which step across machines in sidebar order (Local first, then
+# saved machines), each step waiting for the title to change before the next one.
+import functools
+import json
+import os
+import shlex
+import socket
+import subprocess
+import sys
+import threading
+import time
+import urllib.parse
 
-pick=$(
-  python3 -c '
-import json, subprocess
+# next_workspace / previous_workspace in config.toml, as wtype arguments
+NEXT_KEY = ["-M", "alt", "-k", "Down", "-m", "alt"]
+PREV_KEY = ["-M", "alt", "-k", "Up", "-m", "alt"]
+REMOTE_TIMEOUT = 15  # seconds for a saved machine to answer
+STEP_TIMEOUT = 0.6  # seconds to wait for the title to change after a step within a machine
+SWITCH_TIMEOUT = 5  # same, when the step switches machines
+HERDR_CLASS = "org.omarchy.herdr"
 
-def run(*args):
-    return json.loads(subprocess.run(["herdr", *args], capture_output=True, text=True).stdout)["result"]
 
-spaces = run("workspace", "list")["workspaces"]
-labels = {w["workspace_id"]: w["label"] for w in spaces}
+def run(*args, machine=None, timeout=None):
+    """herdr command on Local, or on a saved machine (see remote)."""
+    if machine:
+        return remote(machine, [args], timeout)[0]
+    return parse(subprocess.run(["herdr", *args], capture_output=True, text=True, timeout=timeout))
 
-agents = run("agent", "list")["agents"]
-for a in sorted(agents, key=lambda a: (labels.get(a["workspace_id"], "").casefold(), a["pane_id"])):
-    title = a.get("terminal_title_stripped") or a["agent"]
-    space = labels.get(a["workspace_id"], "?")
-    print("agent", a["pane_id"], "● " + space + " · " + title + " [" + a["agent_status"] + "]", sep="\t")
 
-for w in sorted(spaces, key=lambda w: w["label"].casefold()):
-    print("space", w["workspace_id"], w["label"], sep="\t")
-' |
-    fzf --delimiter='\t' --with-nth=3 --reverse --no-info --prompt='goto> ' |
-    cut -f1,2
-)
+def parse(out):
+    try:
+        return json.loads(out.stdout)["result"]
+    except (ValueError, KeyError) as e:
+        raise ValueError(f"{e!r}; stdout={out.stdout[:200]!r} stderr={out.stderr[:300]!r}") from None
 
-[[ -z $pick ]] && exit
-kind=${pick%%$'\t'*}
-id=${pick#*$'\t'}
-if [[ $kind == agent ]]; then
-  herdr agent focus "$id" >/dev/null
-else
-  herdr workspace focus "$id" >/dev/null
-fi
+
+@functools.cache
+def machines():
+    out = subprocess.run(["herdr", "machine", "list", "--json"], capture_output=True, text=True)
+    try:
+        return [m for m in json.loads(out.stdout) if m["enabled"]]
+    except (ValueError, KeyError):
+        return []
+
+
+def remote(machine, commands, timeout):
+    """Results of herdr commands on a saved machine, run over one plain SSH connection:
+    `herdr --machine` takes ~5 s per command, SSH ~0.5 s. Falls back to `--machine`."""
+    profile = next(m for m in machines() if m["id"] == machine)
+    target = urllib.parse.urlsplit(profile["target"] if "://" in profile["target"] else "ssh://" + profile["target"])
+    host = (target.username + "@" if target.username else "") + target.hostname
+    session = [] if profile["session"] == "default" else ["--session", profile["session"]]
+    script = "PATH=$HOME/.local/bin:$PATH; " + "; ".join(
+        shlex.join(["herdr", *session, *args]) for args in commands)
+    out = subprocess.run(
+        ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", *(["-p", str(target.port)] if target.port else []),
+         host, script],
+        capture_output=True, text=True, timeout=timeout,
+    )
+    lines = out.stdout.splitlines()
+    if out.returncode == 0 and len(lines) == len(commands):
+        try:
+            return [json.loads(line)["result"] for line in lines]
+        except (ValueError, KeyError):
+            pass
+    return [parse(subprocess.run(["herdr", "--machine", machine, *args], capture_output=True, text=True, timeout=timeout))
+            for args in commands]
+
+
+def snapshot(machine):
+    """Spaces and agents of one machine ("" = Local), or None when it does not answer."""
+    try:
+        if machine:
+            spaces, agents = remote(machine, [("workspace", "list"), ("agent", "list")], REMOTE_TIMEOUT)
+        else:
+            spaces, agents = run("workspace", "list"), run("agent", "list")
+        return {"workspaces": spaces["workspaces"], "agents": agents["agents"]}
+    except (subprocess.TimeoutExpired, ValueError, KeyError, TypeError) as e:
+        with open(os.path.expanduser("~/.cache/herdr-goto.log"), "a") as log:
+            log.write(f"{time.strftime('%F %T')} {machine or 'Local'}: {e!r}\n")
+        return None
+
+
+def rows(machine, label, snap):
+    """fzf lines for one machine: kind, machine, id, workspace id, display; agents first."""
+    tag = label + ": " if machine else ""
+    labels = {w["workspace_id"]: w["label"] for w in snap["workspaces"]}
+    agents = sorted(snap["agents"], key=lambda a: (labels.get(a["workspace_id"], "").casefold(), a["pane_id"]))
+    out = []
+    for a in agents:
+        title = a.get("terminal_title_stripped") or a["agent"]
+        space = labels.get(a["workspace_id"], "?")
+        out.append(["agent", machine, a["pane_id"], a["workspace_id"],
+                    "● " + tag + space + " · " + title + " [" + a["agent_status"] + "]"])
+    for w in sorted(snap["workspaces"], key=lambda w: w["label"].casefold()):
+        out.append(["space", machine, w["workspace_id"], w["workspace_id"], tag + w["label"]])
+    return "".join("\t".join(r) + "\n" for r in out)
+
+
+def pick():
+    """Run fzf while machines answer; returns the picked row and every machine's snapshot."""
+    fzf = subprocess.Popen(
+        ["fzf", "--delimiter=\t", "--with-nth=5", "--reverse", "--no-info", "--prompt=goto> "],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
+    )
+    snaps = {}
+    lock = threading.Lock()
+
+    def feed(machine, label):
+        snap = snapshot(machine)
+        if snap is None:
+            return
+        with lock:
+            snaps[machine] = snap
+            try:
+                fzf.stdin.write(rows(machine, label, snap))
+                fzf.stdin.flush()
+            except (BrokenPipeError, ValueError):
+                pass
+
+    feed("", "")
+    remotes = [threading.Thread(target=feed, args=(m["id"], m["label"]), daemon=True) for m in machines()]
+    for t in remotes:
+        t.start()
+
+    def close_when_done():
+        for t in remotes:
+            t.join()
+        with lock:
+            try:
+                fzf.stdin.close()
+            except BrokenPipeError:
+                pass
+
+    threading.Thread(target=close_when_done, daemon=True).start()
+    out = fzf.stdout.read()
+    fzf.wait()
+    if not out.strip():
+        return None, snaps
+    return out.rstrip("\n").split("\t")[:4], snaps
+
+
+def herdr_window():
+    """Address and title of the most recently focused herdr window."""
+    out = subprocess.run(["hyprctl", "clients", "-j"], capture_output=True, text=True).stdout
+    try:
+        windows = [w for w in json.loads(out) if w["class"] == HERDR_CLASS]
+    except (ValueError, KeyError):
+        windows = []
+    if not windows:
+        fail("no herdr window")
+    w = min(windows, key=lambda w: w["focusHistoryID"])
+    return w["address"], w["title"]
+
+
+def active_window():
+    out = subprocess.run(["hyprctl", "activewindow", "-j"], capture_output=True, text=True).stdout
+    try:
+        w = json.loads(out)
+        return w["address"], w["title"]
+    except (ValueError, KeyError):
+        return None, None
+
+
+def fail(why):
+    subprocess.run(["notify-send", "herdr-goto", "Could not switch: " + why])
+    sys.exit(1)
+
+
+def current_space(title, snaps):
+    """(machine, workspace id) the herdr window shows, from its "{hostname}: {workspace}" title."""
+    host, _, label = title.partition(": ")
+    local_first = host == socket.gethostname()
+    for machine in sorted(snaps, key=lambda m: bool(m) == local_first):
+        for w in snaps[machine]["workspaces"]:
+            if w["label"] == label:
+                return machine, w["workspace_id"]
+    fail(f"no space matches the window title {title!r}")
+
+
+def walk(noun, machine, item, order, here, there, address):
+    """Step the herdr window from sidebar position `here` to `there` (order = machine per
+    space), then focus `item` on `machine`."""
+    subprocess.run(["hyprctl", "dispatch", "focuswindow", "address:" + address], capture_output=True)
+    deadline = time.monotonic() + 1
+    while time.monotonic() < deadline and active_window()[0] != address:
+        time.sleep(0.03)
+    down = (there - here) % len(order)
+    up = len(order) - down
+    key, steps, step = (NEXT_KEY, down, 1) if down <= up else (PREV_KEY, up, -1)
+    pos = here
+    for _ in range(steps):
+        addr, title = active_window()
+        if addr != address:
+            fail("the herdr window lost focus")
+        nxt = (pos + step) % len(order)
+        wait = SWITCH_TIMEOUT if order[nxt] != order[pos] else STEP_TIMEOUT
+        subprocess.run(["wtype", *key])
+        deadline = time.monotonic() + wait
+        while time.monotonic() < deadline and active_window()[1] == title:
+            time.sleep(0.03)
+        pos = nxt
+    if noun == "agent":
+        run(noun, "focus", item, machine=machine or None, timeout=REMOTE_TIMEOUT)
+
+
+def main():
+    if len(sys.argv) == 3 and sys.argv[1] == "--walk":
+        walk(**json.loads(sys.argv[2]))
+        return
+    address, title = herdr_window()
+    choice, snaps = pick()
+    if not choice:
+        os._exit(0)  # don't wait for machines that are still answering
+    kind, machine, item, workspace_id = choice
+    noun = "agent" if kind == "agent" else "workspace"
+    here = current_space(title, snaps)
+    if here[0] == machine:
+        # The window follows focus changes on the machine it shows
+        run(noun, "focus", item, machine=machine or None, timeout=REMOTE_TIMEOUT)
+        os._exit(0)
+    # Another machine: walk the window there, in the background so this terminal closes now.
+    # Sidebar order: Local, then saved machines in `herdr machine list` order.
+    ids = [""] + [m["id"] for m in machines()]
+    spaces = [(m, w["workspace_id"]) for m in ids if m in snaps for w in snaps[m]["workspaces"]]
+    args = {
+        "noun": noun,
+        "machine": machine,
+        "item": item,
+        "order": [m for m, _ in spaces],
+        "here": spaces.index(here),
+        "there": spaces.index((machine, workspace_id)),
+        "address": address,
+    }
+    subprocess.Popen(
+        [sys.argv[0], "--walk", json.dumps(args)], start_new_session=True,
+        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    os._exit(0)
+
+
+main()
