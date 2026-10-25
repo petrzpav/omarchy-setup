@@ -109,13 +109,9 @@ key = "prefix+s"
 type = "shell"
 command = "~/.local/bin/herdr-sort-spaces"
 
-# ctrl+p: search-first agent + space switcher (fzf popup, agents first); built-in goto stays on prefix+g
-[[keys.command]]
-key = "ctrl+p"
-type = "popup"
-command = "~/.local/bin/herdr-goto"
-width = "50%"
-height = "50%"
+# ctrl+p (search-first agent + space switcher across machines) is a Hyprland binding in
+# omarchy-setup's hypr/team.lua: popup commands here would only run while viewing this PC.
+# Built-in goto stays on prefix+g.
 
 [ui]
 accent = "blue"

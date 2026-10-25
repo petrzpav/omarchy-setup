@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.18] - 2026-10-25
+
+### Changed
+
+- The shared Hyprland settings and keybindings are updated.
+- The herdr setup (config, keybindings, scripts, persistent spaces) is updated.
+
 ## [0.1.17] - 2026-10-24
 
 ### Changed
@@ -125,6 +132,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
+[0.1.18]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.14...v0.1.15
