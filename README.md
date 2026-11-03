@@ -32,7 +32,7 @@ git clone https://github.com/petrzpav/omarchy-setup.git ~/.local/share/omarchy-s
 
 | Module | Changes |
 |---|---|
-| `packages` | Installs the apps and tools in [`packages.txt`](packages.txt) that are missing (asks for your sudo password) |
+| `packages` | Installs the apps and tools in [`packages.txt`](packages.txt) that are missing (asks for your sudo password); one that fails is reported at the end and the rest still installs |
 | `theme` | Copies the Monokai Pro theme to `~/.config/omarchy/themes/` and makes it the active theme |
 | `hypr` | Adds a line to `~/.config/hypr/hyprland.lua` that loads [`hypr/team.lua`](hypr/team.lua) (gaps, rounding, keybindings); copies the screen recording scripts to `~/.local/bin` |
 | `plugins` | Installs the bar plugins [omapager](https://github.com/njpatel/omapager), [wallswap](https://github.com/petrzpav/omarchy-wallswap) and the bundled `petrzpav.indicators` |

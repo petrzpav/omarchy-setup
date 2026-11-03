@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-11-03
+
+### Fixed
+
+- A package that fails to install no longer stops the setup; the rest is applied and the failed ones are listed at the end.
+- The flea file manager installs from the Omarchy repo; its AUR package flea-bin no longer exists, and an installed flea-bin is replaced.
+
+### Changed
+
+- The setup agent explains how to find a package that was renamed or moved.
+
 ## [0.1.18] - 2026-10-25
 
 ### Changed
@@ -132,6 +143,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
+[0.1.19]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.15...v0.1.16

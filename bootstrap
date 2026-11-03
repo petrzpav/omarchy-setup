@@ -26,7 +26,8 @@ main() {
     git clone -q "$url" "$dir"
   fi
 
-  "$dir/install"
+  # A failed package shouldn't keep the agent from starting: it checks the install first.
+  "$dir/install" || echo "Part of the install failed (see above); the setup agent will go through it with you."
 
   echo
   if [[ ! -t 0 ]]; then
