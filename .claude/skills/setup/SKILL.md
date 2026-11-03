@@ -7,8 +7,8 @@ description: Finish the omarchy-setup on this machine with the person - restore 
 
 `./install` (in this repo) has already applied the shared, machine-independent part:
 the Monokai Pro theme, gaps and rounding, keybindings, crash-safe screen recording,
-the bar layout, the omapager, wallswap and indicators plugins, and the extra
-packages in `packages.txt`. Your job is the
+the bar layout, the omapager, wallswap and indicators plugins, the herdr setup,
+and the extra packages in `packages.txt`. Your job is the
 part that depends on this person and this machine.
 
 Load the `omarchy` skill first if it is available; it has the rules for editing
@@ -36,8 +36,23 @@ back up a file before changing it (`cp f f.bak.$(date +%s)`); after any
 
 1. **Check the install.** `./install --dry-run` should report everything as up to
    date, and `hyprctl configerrors` should be empty. Fix anything that isn't.
-   If a package from `packages.txt` failed to install, say which and retry it with
-   `omarchy pkg add <name>` in a visible terminal.
+   A package that fails doesn't stop the rest: `./install` lists it under
+   "Not installed" at the end and exits with 3. For each one listed (or still
+   shown as "install …" by the dry run):
+   - Find out why. `pacman -Si <name>` checks the repos (Arch and Omarchy's own),
+     `yay -Si <name>` the AUR, and `pacman -Ss <word>` / `yay -Ss <word>` find a
+     renamed one. Packages move: flea, for example, left the AUR as `flea-bin`
+     and is now `flea` in the Omarchy repo.
+   - If it only needs a retry (network, mirror, a sudo prompt that timed out), run
+     `./install packages` in a visible terminal. It uses `omarchy pkg add` for
+     repo packages and `omarchy pkg aur add` for `aur:` ones.
+   - If the name or source in `packages.txt` is out of date, install the right
+     package for this person, and tell them that `packages.txt` needs fixing
+     upstream. Don't edit the repo yourself (see above): its maintainer fixes it.
+   - `./install packages` also replaces an old AUR build with the repo package
+     that `packages.txt` names (e.g. `flea-bin` with `flea`). It removes the old
+     build first, so run it in a visible terminal and check that the new one is
+     installed afterwards.
 
 2. **Restore from an old backup.** Ask if they have a backup of their previous
    computer they want to bring over (files, keys, app settings, or their whole

@@ -31,11 +31,13 @@ declare -A ABOUT=(
 DRY=0
 STAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP_DIR="$BACKUPS/$STAMP"
+FAILED=() # packages that did not install; reported at the end, exit 3
 
 bold() { printf '\033[1m%s\033[0m\n' "$*"; }
 tilde() { printf %s "${1/#"$HOME"/\~}"; }
 step() { printf '  \033[32m•\033[0m %s\n' "$*"; }
 skip() { printf '  \033[2m· %s\033[0m\n' "$*"; }
+warn() { printf '  \033[33m! %s\033[0m\n' "$*" >&2; }
 die() { printf '\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
 # Run a command, or only print it in dry-run mode.
@@ -73,16 +75,26 @@ sync() {
 
 # ── modules ──────────────────────────────────────────────────────────────────
 
+# A package that fails (e.g. it left the AUR) is reported and skipped, so the
+# other packages and modules still install.
 mod_packages() {
-  local -a repo=() aur=()
-  local pkg
+  local -a repo=() aur=() stale=()
+  local pkg have old
   while read -r pkg; do
     [[ -n $pkg ]] || continue
-    if [[ $pkg == aur:* ]]; then pkg="${pkg#aur:}"; pacman -Q "$pkg" &>/dev/null || aur+=("$pkg")
-    else pacman -Q "$pkg" &>/dev/null || repo+=("$pkg"); fi
+    if [[ $pkg == aur:* ]]; then
+      pkg="${pkg#aur:}"
+      pacman -Q "$pkg" &>/dev/null || aur+=("$pkg")
+    elif have="$(pacman -Qq "$pkg" 2>/dev/null)"; then
+      # pacman -Q also matches a package that only provides the name: an older
+      # AUR build of an app that is now in a repo (flea-bin for flea). Swap it.
+      [[ $have != "$pkg" ]] && pacman -Qqm "$have" &>/dev/null && stale+=("$have:$pkg")
+    else
+      repo+=("$pkg")
+    fi
   done < <(sed 's/#.*//; s/^\s*//; s/\s*$//' "$REPO/packages.txt")
 
-  if ((${#repo[@]} + ${#aur[@]} == 0)); then
+  if ((${#repo[@]} + ${#aur[@]} + ${#stale[@]} == 0)); then
     skip "all packages from packages.txt are installed"
     return 0
   fi
@@ -92,14 +104,20 @@ mod_packages() {
     step "first system update (fresh install, takes a few minutes)"
     run omarchy update -y
   fi
-  if ((${#repo[@]})); then
-    step "install ${repo[*]}"
-    run omarchy pkg add "${repo[@]}"
-  fi
-  if ((${#aur[@]})); then
-    step "install from AUR: ${aur[*]}"
-    run omarchy pkg aur add "${aur[@]}"
-  fi
+  for pkg in "${stale[@]}"; do
+    old="${pkg%%:*}" pkg="${pkg#*:}"
+    step "replace $old (AUR) with $pkg"
+    { run omarchy pkg drop "$old" && run omarchy pkg add "$pkg"; } || { warn "$pkg did not install"; FAILED+=("$pkg"); }
+  done
+  # One at a time, so a package that can't be found doesn't block the others.
+  for pkg in "${repo[@]}"; do
+    step "install $pkg"
+    run omarchy pkg add "$pkg" || { warn "$pkg did not install"; FAILED+=("$pkg"); }
+  done
+  for pkg in "${aur[@]}"; do
+    step "install $pkg from the AUR"
+    run omarchy pkg aur add "$pkg" || { warn "$pkg did not install"; FAILED+=("aur:$pkg"); }
+  done
 }
 
 mod_theme() {
@@ -262,4 +280,11 @@ if ((!DRY)); then
     [[ -n $errors ]] && printf '\033[33mHyprland config errors:\033[0m\n%s\n' "$errors"
   fi
   [[ -d $BACKUP_DIR ]] && echo && echo "Backup: $BACKUP_DIR   (undo: ./install --restore)"
+fi
+
+if ((${#FAILED[@]})); then
+  printf '\n\033[31mNot installed:\033[0m %s\n' "${FAILED[*]}" >&2
+  echo "Everything else is applied. Check the names in packages.txt (a package may have" >&2
+  echo "moved between the AUR and the repos: pacman -Ss <name>, yay -Ss <name>), then run ./install packages." >&2
+  exit 3
 fi
