@@ -19,6 +19,13 @@ hl.config({
 o.bind("CTRL + ALT + R", "Start/stop screen recording with mic (crash-safe)", bin .. "screenrecord-session")
 o.bind("CTRL + ALT + P", "Pause/resume screen recording", bin .. "screenrecord-pause-toggle")
 
+-- Password vault (rbw): pick a login and copy it for one paste, cleared after 30 s.
+-- Takes over Omarchy's Google Photos key.
+hl.unbind("SUPER + SHIFT + P")
+o.bind("SUPER + SHIFT + P", "Vault: copy password", bin .. "vault-pick")
+o.bind("SUPER + SHIFT + ALT + P", "Vault: copy username", bin .. "vault-pick --user")
+o.bind("SUPER + SHIFT + CTRL + P", "Vault: copy TOTP code", bin .. "vault-pick --totp")
+
 -- Herdr in its own window: focused when open, started when not (default stays on SUPER + CTRL + RETURN)
 o.bind("SUPER + SHIFT + H", "Herdr", { tui = "herdr", focus = true })
 
