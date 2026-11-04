@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.20] - 2026-11-04
+
+### Added
+
+- The setup skill offers connecting rbw to a Bitwarden or Vaultwarden server.
+- Super + Shift + P picks a login from the password vault (rbw, fuzzel) and copies its password for one paste; + Alt copies the username, + Ctrl the TOTP code. It replaces the Google Photos key.
+
 ## [0.1.19] - 2026-11-03
 
 ### Fixed
@@ -143,6 +150,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
+[0.1.20]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.16...v0.1.17
