@@ -114,6 +114,14 @@ back up a file before changing it (`cp f f.bak.$(date +%s)`); after any
    - **AirPods** battery and controls in the bar:
      `omarchy plugin add https://github.com/thisisgm/omarchy-pods --enable --yes`,
      then run the plugin's `setup` script (builds a small daemon; read its README).
+   - **Password vault** (Bitwarden or Vaultwarden through `rbw`, already installed):
+     Super + Shift + P copies a password for one paste, + Alt the username,
+     + Ctrl the TOTP code (the key replaces Omarchy's Google Photos). Ask for their e-mail and the server URL (a self-hosted
+     Vaultwarden may be reachable only over Tailscale), then
+     `rbw config set email …`, `rbw config set base_url …` and
+     `rbw config set pinentry pinentry-gnome3`. They run `rbw login` themselves in
+     a visible terminal: it asks for the master password and 2FA code, which must
+     never go through you.
    - **Terminal apps** for Mail (Gmail), Slack and Trello, each with a bar widget
      and keybinding. Each needs the person's own account and API credentials, so
      only offer them if they use the service:

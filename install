@@ -135,7 +135,7 @@ mod_theme() {
 
 mod_hypr() {
   local f
-  for f in screenrecord-session screenrecord-pause-toggle app-hide app-unhide; do
+  for f in screenrecord-session screenrecord-pause-toggle app-hide app-unhide vault-pick; do
     sync "bin/$f" "$HOME/.local/bin/$f"
   done
 

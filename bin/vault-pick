@@ -1,0 +1,39 @@
+#!/bin/bash
+# Pick a login from the Bitwarden/Vaultwarden vault (rbw) in fuzzel and copy its
+# password to the clipboard for one paste (cleared after 30 s at the latest).
+#   vault-pick          copy the password
+#   vault-pick --user   copy the username
+#   vault-pick --totp   copy the current TOTP code
+set -euo pipefail
+
+field=password
+case ${1:-} in
+  --user) field=user ;;
+  --totp) field=totp ;;
+esac
+
+notify() { notify-send -a "Vault" "$@" 2>/dev/null || true; }
+
+# Unlocking asks for the master password through rbw's pinentry
+rbw unlocked >/dev/null 2>&1 || rbw unlock || exit 0
+rbw sync >/dev/null 2>&1 &
+
+sep=$'\t'
+choice=$(rbw list --fields name,user | sort -f |
+  fuzzel --dmenu --prompt "vault ($field) › " --width 60) || exit 0
+name=${choice%%"$sep"*}
+user=${choice#*"$sep"}
+
+case $field in
+  user) value=$user ;;
+  totp) value=$(rbw code "$name" ${user:+"$user"}) ;;
+  *) value=$(rbw get "$name" ${user:+"$user"}) ;;
+esac
+[[ -n $value ]] || { notify "Nothing to copy" "$name has no $field"; exit 1; }
+
+printf '%s' "$value" | wl-copy --paste-once
+notify "Copied $field" "$name${user:+ ($user)}: paste once, cleared in 30 s"
+
+# Clear it after 30 s unless something else was copied meanwhile
+( sleep 30; [[ $(wl-paste --no-newline 2>/dev/null) == "$value" ]] && wl-copy --clear ) >/dev/null 2>&1 &
+disown
