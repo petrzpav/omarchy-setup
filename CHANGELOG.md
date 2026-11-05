@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.22] - 2026-11-05
+
+### Changed
+
+- The bar layout is updated.
+
+### Removed
+
+- Packages dua-cli, power-profiles-daemon.
+
 ## [0.1.21] - 2026-11-05
 
 ### Changed
@@ -160,6 +170,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
+[0.1.22]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.18...v0.1.19
