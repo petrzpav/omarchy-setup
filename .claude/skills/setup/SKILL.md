@@ -121,7 +121,10 @@ back up a file before changing it (`cp f f.bak.$(date +%s)`); after any
      `rbw config set email …`, `rbw config set base_url …` and
      `rbw config set pinentry pinentry-gnome3`. They run `rbw login` themselves in
      a visible terminal: it asks for the master password and 2FA code, which must
-     never go through you.
+     never go through you. Offer a **PIN instead of the master password** (only
+     with a TPM 2.0, `ls /dev/tpmrm0`): `sudo usermod -aG tss $USER`, log in again,
+     then they run `vault-pin setup` themselves (it seals the master password in
+     the TPM; the TPM locks out after repeated wrong PINs). `vault-pin remove` undoes it.
    - **Terminal apps** for Mail (Gmail), Slack and Trello, each with a bar widget
      and keybinding. Each needs the person's own account and API credentials, so
      only offer them if they use the service:

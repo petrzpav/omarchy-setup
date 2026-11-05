@@ -15,4 +15,5 @@ obs-studio                   # Free, open source software for live streaming and
 owe-lockfeed                 # Lock screen video feed module for the OWE wallpaper engine
 python-pillow                # Python Imaging Library (PIL) fork
 rbw                          # Unofficial Bitwarden CLI
+tpm2-tools                   # Trusted Platform Module 2.0 tools based on tpm2-tss
 xournalpp                    # Handwriting notetaking software with PDF annotation support
