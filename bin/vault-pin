@@ -1,0 +1,439 @@
+#!/usr/bin/env python3
+"""Unlock the rbw password vault with a short PIN instead of the master password.
+
+The master password is sealed in this laptop's TPM 2.0 chip, protected by the
+PIN. The TPM's dictionary-attack lockout stops anyone from guessing the PIN, so
+a short one is safe; the sealed blob is useless on any other machine.
+
+  vault-pin setup     seal the master password, choose a PIN, switch rbw over
+  vault-pin status    show whether the PIN is set up and the TPM lockout state
+  vault-pin remove    forget the sealed password, rbw asks for the master again
+  vault-pin pinentry  (internal) the pinentry rbw runs; see vault-pinentry
+
+rbw has no PIN support of its own, so `vault-pin pinentry` stands in for its
+pinentry: when rbw asks for the master password it asks for the PIN, unseals
+the password and hands it to rbw. Anything else (2FA codes, a password rbw
+rejected, a wrong PIN three times, a locked-out TPM) goes to the real pinentry.
+"""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+HOME = Path.home()
+DATA = Path(os.environ.get("XDG_DATA_HOME", HOME / ".local/share")) / "vault-pin"
+STATE = Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state")) / "vault-pin"
+PUB, PRIV = DATA / "seal.pub", DATA / "seal.priv"
+REAL_FILE = DATA / "real-pinentry"
+LAST_FILE = STATE / "last"
+PINENTRY_WRAPPER = Path(__file__).resolve().with_name("vault-pinentry")
+TPM_DEVICE = "/dev/tpmrm0"
+PIN_TRIES = 3
+MIN_PIN = 4
+MAX_SECRET = 128  # TPM2 sealed data objects hold at most 128 bytes
+
+TPM_ENV = dict(os.environ, TPM2TOOLS_TCTI=f"device:{TPM_DEVICE}")
+
+
+class TpmError(Exception):
+    pass
+
+
+class WrongPin(TpmError):
+    pass
+
+
+class Lockout(TpmError):
+    pass
+
+
+# ---------------------------------------------------------------- Assuan bits
+
+def esc(s: str) -> str:
+    return s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+def unesc(s: str) -> str:
+    out, i = bytearray(), 0
+    b = s.encode()
+    while i < len(b):
+        if b[i] == 0x25 and i + 2 < len(b):
+            out.append(int(b[i + 1:i + 3], 16))
+            i += 3
+        else:
+            out.append(b[i])
+            i += 1
+    return out.decode(errors="replace")
+
+
+def real_pinentry() -> str:
+    try:
+        name = REAL_FILE.read_text().strip()
+    except OSError:
+        name = ""
+    for cand in (name, "pinentry-gnome3", "pinentry"):
+        if cand and shutil.which(cand):
+            return cand
+    sys.exit("vault-pin: no pinentry found")
+
+
+class Pinentry:
+    """A conversation with the real pinentry program."""
+
+    def __init__(self, args=()):
+        self.p = subprocess.Popen([real_pinentry(), *args], stdin=subprocess.PIPE,
+                                  stdout=subprocess.PIPE, text=True, bufsize=1)
+        self.read()
+
+    def read(self):
+        """Read one reply: (data lines, final OK/ERR line)."""
+        data = []
+        while True:
+            line = self.p.stdout.readline()
+            if not line:
+                return data, "ERR 83886179 pinentry exited"
+            line = line.rstrip("\n")
+            if line.startswith("D "):
+                data.append(line)
+            elif line.startswith(("OK", "ERR")):
+                return data, line
+            # S (status) and # (comment) lines are skipped
+
+    def cmd(self, line: str):
+        self.p.stdin.write(line + "\n")
+        return self.read()
+
+    def close(self):
+        try:
+            self.p.stdin.write("BYE\n")
+            self.p.stdin.close()
+        except OSError:
+            pass
+        self.p.wait()
+
+
+def ask(prompt, desc, error=None, title="Vault", args=()):
+    """Ask for a secret; None when cancelled."""
+    pe = Pinentry(args)
+    try:
+        pe.cmd(f"SETTITLE {esc(title)}")
+        pe.cmd(f"SETDESC {esc(desc)}")
+        pe.cmd(f"SETPROMPT {esc(prompt)}")
+        if error:
+            pe.cmd(f"SETERROR {esc(error)}")
+        data, end = pe.cmd("GETPIN")
+        if not end.startswith("OK"):
+            return None
+        return unesc("".join(d[2:] for d in data))
+    finally:
+        pe.close()
+
+
+# ------------------------------------------------------------------- TPM bits
+
+def tpm(*args, input=None):
+    r = subprocess.run(args, env=TPM_ENV, input=input, capture_output=True)
+    if r.returncode:
+        err = r.stderr.decode(errors="replace")
+        low = err.lower()
+        if "lockout" in low or "0x921" in low:
+            raise Lockout(err)
+        if "0x98e" in low or "authorization hmac check failed" in low or "auth_fail" in low:
+            raise WrongPin(err)
+        raise TpmError(err.strip() or f"{args[0]} failed ({r.returncode})")
+    return r.stdout
+
+
+def tpm_check():
+    if not shutil.which("tpm2_unseal"):
+        sys.exit("vault-pin: install tpm2-tools first (omarchy pkg add tpm2-tools)")
+    if not os.access(TPM_DEVICE, os.R_OK | os.W_OK):
+        sys.exit(f"vault-pin: no access to {TPM_DEVICE}; run "
+                 f"`sudo usermod -aG tss $USER` and log in again")
+
+
+def primary(tmp):
+    # The same template always derives the same primary key, so nothing about
+    # it has to be stored. ECC keeps it fast.
+    ctx = f"{tmp}/primary.ctx"
+    tpm("tpm2_createprimary", "-Q", "-C", "o", "-G", "ecc256", "-c", ctx)
+    return ctx
+
+
+def runtime_tmp():
+    return tempfile.TemporaryDirectory(dir=os.environ.get("XDG_RUNTIME_DIR"))
+
+
+def seal(secret: bytes, pin: str):
+    if len(secret) > MAX_SECRET:
+        sys.exit(f"vault-pin: the TPM seals at most {MAX_SECRET} bytes")
+    DATA.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with runtime_tmp() as tmp:
+        pinf = Path(tmp, "pin")
+        pinf.write_text(pin)
+        pinf.chmod(0o600)
+        try:
+            tpm("tpm2_create", "-Q", "-C", primary(tmp), "-p", f"file:{pinf}",
+                "-u", f"{tmp}/seal.pub", "-r", f"{tmp}/seal.priv", "-i", "-",
+                input=secret)
+        finally:
+            pinf.unlink()
+        for src, dst in ((f"{tmp}/seal.pub", PUB), (f"{tmp}/seal.priv", PRIV)):
+            shutil.copyfile(src, dst)
+            dst.chmod(0o600)
+
+
+def unseal(pin: str) -> bytes:
+    with runtime_tmp() as tmp:
+        tpm("tpm2_load", "-Q", "-C", primary(tmp), "-u", str(PUB), "-r", str(PRIV),
+            "-c", f"{tmp}/seal.ctx")
+        pinf = Path(tmp, "pin")
+        pinf.write_text(pin)
+        pinf.chmod(0o600)
+        try:
+            return tpm("tpm2_unseal", "-c", f"{tmp}/seal.ctx", "-p", f"file:{pinf}")
+        finally:
+            pinf.unlink()
+
+
+def lockout_info():
+    try:
+        out = tpm("tpm2_getcap", "properties-variable").decode()
+    except TpmError as e:
+        return f"unknown ({e})"
+    vals = {}
+    key = None
+    for line in out.splitlines():
+        s = line.strip()
+        if s.startswith("TPM2_PT_") and s.endswith(":"):
+            key = s[:-1]
+        elif key and s.startswith("raw:"):
+            vals[key] = int(s.split(":", 1)[1], 0)
+            key = None
+        elif s.startswith("TPM2_PT_") and ":" in s:
+            k, v = s.split(":", 1)
+            try:
+                vals[k] = int(v.strip(), 0)
+            except ValueError:
+                pass
+    tries = vals.get("TPM2_PT_MAX_AUTH_FAIL")
+    count = vals.get("TPM2_PT_LOCKOUT_COUNTER")
+    interval = vals.get("TPM2_PT_LOCKOUT_INTERVAL")
+    if tries is None:
+        return "unknown"
+    s = f"{count} of {tries} failed tries used"
+    if interval:
+        s += f", one forgiven every {interval // 60} min" if interval >= 60 else f", one forgiven every {interval} s"
+    return s
+
+
+# ----------------------------------------------------------- pinentry wrapper
+
+def mark(what: str):
+    try:
+        STATE.mkdir(parents=True, exist_ok=True)
+        LAST_FILE.write_text(f"{what} {int(time.time())}\n")
+    except OSError:
+        pass
+
+
+def last():
+    try:
+        what, when = LAST_FILE.read_text().split()
+        return what, int(when)
+    except (OSError, ValueError):
+        return None, 0
+
+
+def notify(summary, body=""):
+    subprocess.run(["notify-send", "-a", "Vault", summary, body],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def wrapper(args):
+    """Speak Assuan to rbw-agent; answer master-password requests with the PIN."""
+    out = sys.stdout
+    history, opts = [], {}
+
+    def reply(*lines):
+        for line in lines:
+            out.write(line + "\n")
+        out.flush()
+
+    def forward_to_real(extra_desc=None):
+        pe = Pinentry(args)
+        try:
+            for line in history:
+                if extra_desc and line.startswith("SETDESC "):
+                    line = f"{line}%0A%0A{esc(extra_desc)}"
+                pe.cmd(line)
+            data, end = pe.cmd("GETPIN")
+            reply(*data, end)
+        finally:
+            pe.close()
+
+    reply("OK vault-pin pinentry")
+    for raw in sys.stdin:
+        line = raw.rstrip("\n")
+        cmd, _, arg = line.partition(" ")
+        cmd = cmd.upper()
+        if cmd == "BYE":
+            reply("OK closing connection")
+            return
+        if cmd == "GETINFO":
+            if arg == "pid":
+                reply(f"D {os.getpid()}", "OK")
+            elif arg == "version":
+                reply("D 1.3.3", "OK")
+            else:
+                reply("OK")
+            continue
+        if cmd != "GETPIN":
+            history.append(line)
+            opts[cmd] = unesc(arg)
+            reply("OK")
+            continue
+
+        is_master = "master password" in opts.get("SETPROMPT", "").lower()
+        sealed = PUB.exists() and PRIV.exists()
+        if not (is_master and sealed):
+            forward_to_real()
+            continue
+
+        if "SETERROR" in opts:
+            # rbw rejected what we gave it a moment ago: the master password
+            # was changed since `vault-pin setup`.
+            what, when = last()
+            if what == "provided" and time.time() - when < 120:
+                mark("rejected")
+                forward_to_real("The password sealed with your PIN no longer works; "
+                                "run `vault-pin setup` again.")
+            else:
+                forward_to_real()
+            continue
+
+        if not pin_unlock(args, reply):
+            # Cancelled, wrong PIN too often, or TPM trouble: master password.
+            forward_to_real()
+
+
+def pin_unlock(args, reply) -> bool:
+    error = None
+    for left in range(PIN_TRIES - 1, -1, -1):
+        pin = ask("PIN", "Unlock the vault with your PIN.\n"
+                  "(Cancel to type the master password instead.)", error, args=args)
+        if pin is None:
+            return False
+        try:
+            secret = unseal(pin).decode()
+        except WrongPin:
+            error = f"Wrong PIN, {left} {'try' if left == 1 else 'tries'} left"
+            continue
+        except Lockout:
+            notify("TPM locked out", "Too many wrong PINs; use the master password for now.")
+            return False
+        except TpmError as e:
+            notify("Vault PIN failed", str(e)[:200])
+            return False
+        mark("provided")
+        reply(f"D {esc(secret)}", "OK")
+        return True
+    return False
+
+
+# --------------------------------------------------------------- subcommands
+
+def rbw(*args, check=True):
+    return subprocess.run(["rbw", *args], check=check, capture_output=True, text=True)
+
+
+def setup():
+    tpm_check()
+    pw = ask("Master password", "Enter your vault master password. It will be sealed "
+             "in this laptop's TPM, unlocked only by your PIN.", title="Vault PIN setup")
+    if not pw:
+        sys.exit("cancelled")
+    if ask("Master password", "Enter the master password again.", title="Vault PIN setup") != pw:
+        sys.exit("vault-pin: the two master passwords differ")
+    error = None
+    while True:
+        pin = ask("New PIN", f"Choose a PIN (at least {MIN_PIN} characters). The TPM locks "
+                  "out after repeated wrong tries.", error, title="Vault PIN setup")
+        if pin is None:
+            sys.exit("cancelled")
+        if len(pin) < MIN_PIN:
+            error = f"Too short, at least {MIN_PIN} characters"
+            continue
+        if ask("New PIN", "Enter the PIN again.", title="Vault PIN setup") != pin:
+            error = "The PINs differ, try again"
+            continue
+        break
+    seal(pw.encode(), pin)
+    del pw, pin
+
+    cur = json.loads(rbw("config", "show").stdout).get("pinentry") or "pinentry-gnome3"
+    if Path(cur).name not in ("vault-pinentry",):
+        REAL_FILE.write_text(cur + "\n")
+    rbw("config", "set", "pinentry", str(PINENTRY_WRAPPER))
+    print(f"Sealed. rbw now uses {PINENTRY_WRAPPER}.")
+
+    print("Testing: locking the vault and unlocking it with your PIN…")
+    LAST_FILE.unlink(missing_ok=True)
+    # A fresh agent: one started before joining the tss group cannot reach the TPM.
+    rbw("stop-agent", check=False)
+    r = subprocess.run(["rbw", "unlock"])
+    what, _ = last()
+    if what == "rejected":
+        print("The master password you entered was wrong; nothing is set up.")
+        remove(quiet=True)
+        sys.exit(1)
+    if r.returncode or what != "provided":
+        print("Unlock with the PIN did not complete; the PIN stays set up, try "
+              "`rbw lock; rbw unlock`.")
+        sys.exit(1)
+    print(f"Works. TPM lockout: {lockout_info()}.")
+
+
+def remove(quiet=False):
+    real = REAL_FILE.read_text().strip() if REAL_FILE.exists() else "pinentry-gnome3"
+    rbw("config", "set", "pinentry", real, check=False)
+    for f in (PUB, PRIV, REAL_FILE):
+        f.unlink(missing_ok=True)
+    if not quiet:
+        print(f"Removed. rbw asks for the master password again (pinentry: {real}).")
+
+
+def status():
+    pe = json.loads(rbw("config", "show").stdout).get("pinentry")
+    sealed = PUB.exists() and PRIV.exists()
+    print(f"PIN set up:     {'yes' if sealed else 'no'}")
+    print(f"rbw pinentry:   {pe}")
+    if shutil.which("tpm2_getcap") and os.access(TPM_DEVICE, os.R_OK | os.W_OK):
+        print(f"TPM lockout:    {lockout_info()}")
+    what, when = last()
+    if what:
+        print(f"Last PIN use:   {what} {time.strftime('%Y-%m-%d %H:%M', time.localtime(when))}")
+
+
+def main():
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "status"
+    if cmd == "pinentry":
+        wrapper(sys.argv[2:])
+    elif cmd == "setup":
+        setup()
+    elif cmd == "remove":
+        remove()
+    elif cmd == "status":
+        status()
+    else:
+        print(__doc__.strip())
+        sys.exit(0 if cmd in ("-h", "--help", "help") else 2)
+
+
+if __name__ == "__main__":
+    main()

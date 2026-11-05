@@ -1,0 +1,4 @@
+#!/bin/sh
+# The pinentry rbw runs once `vault-pin setup` is done: asks for the PIN
+# instead of the master password. See vault-pin.
+exec "$(dirname "$(readlink -f "$0")")/vault-pin" pinentry "$@"
