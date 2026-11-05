@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.23] - 2026-11-05
+
+### Changed
+
+- The bar layout is updated.
+- The herdr setup (config, keybindings, scripts, persistent spaces) is updated.
+
 ## [0.1.22] - 2026-11-05
 
 ### Changed
@@ -167,6 +174,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Restore from an old computer's backup, and automatic local / USB restic backups.
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
+[0.1.23]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.22...v0.1.23
 [0.1.22]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.19...v0.1.20
