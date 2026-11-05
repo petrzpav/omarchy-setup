@@ -8,7 +8,7 @@ BarWidget {
   id: root
   moduleName: "petrzpav.indicators"
 
-  readonly property var defaultIndicatorEntries: [ "Dictation", "ScreenRecording", "Reminder", "NightLight", "Dnd", "StayAwake", "RemoteDesktop" ]
+  readonly property var defaultIndicatorEntries: [ "Dictation", "ScreenRecording", "Reminder", "NightLight", "Dnd", "StayAwake", "RemoteDesktop", "PhoneSpeaker" ]
   readonly property var indicatorEntries: indicatorEntriesFromSettings(settings)
   property var activeIndicatorIds: []
   property var indicatorActiveStates: ({})
