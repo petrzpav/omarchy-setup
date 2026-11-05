@@ -1,5 +1,6 @@
 {
-  "background": "glassy",
+  "background": "opaque",
+  "id": "petrzpav.bar",
   "layout": {
     "center": [
       {
@@ -110,7 +111,8 @@
       {
         "id": "omarchy.power"
       }
-    ]
+    ],
+    "tray": []
   },
   "position": "bottom"
 }
