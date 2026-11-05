@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.28] - 2026-11-05
+
+### Added
+
+- Super + Alt + P locks the password vault.
+
 ## [0.1.27] - 2026-11-05
 
 ### Added
@@ -198,6 +204,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Restore from an old computer's backup, and automatic local / USB restic backups.
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
+[0.1.28]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.27...v0.1.28
 [0.1.27]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.26...v0.1.27
 [0.1.26]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.25...v0.1.26
 [0.1.25]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.24...v0.1.25

@@ -4,6 +4,7 @@
 #   vault-pick          copy the password
 #   vault-pick --user   copy the username
 #   vault-pick --totp   copy the current TOTP code
+#   vault-pick --lock   lock the vault (the next pick asks for the PIN/master password)
 set -euo pipefail
 
 field=password
@@ -14,7 +15,12 @@ esac
 
 notify() { notify-send -a "Vault" "$@" 2>/dev/null || true; }
 
-# Unlocking asks for the master password through rbw's pinentry
+if [[ ${1:-} == --lock ]]; then
+  rbw lock && notify "Vault locked"
+  exit
+fi
+
+# Unlocking asks for the master password (or the PIN, see vault-pin) through rbw's pinentry
 rbw unlocked >/dev/null 2>&1 || rbw unlock || exit 0
 rbw sync >/dev/null 2>&1 &
 
