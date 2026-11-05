@@ -60,11 +60,6 @@
             "value": "RemoteDesktop",
             "label": "Remote desktop",
             "description": "Phone VNC over Tailscale"
-          },
-          {
-            "value": "PhoneSpeaker",
-            "label": "Phone speaker",
-            "description": "PC sound on the phone over Tailscale"
           }
         ]
       },
