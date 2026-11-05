@@ -25,6 +25,7 @@ hl.unbind("SUPER + SHIFT + P")
 o.bind("SUPER + SHIFT + P", "Vault: copy password", bin .. "vault-pick")
 o.bind("SUPER + SHIFT + ALT + P", "Vault: copy username", bin .. "vault-pick --user")
 o.bind("SUPER + SHIFT + CTRL + P", "Vault: copy TOTP code", bin .. "vault-pick --totp")
+o.bind("SUPER + ALT + P", "Vault: lock", bin .. "vault-pick --lock")
 
 -- Herdr in its own window: focused when open, started when not (default stays on SUPER + CTRL + RETURN)
 o.bind("SUPER + SHIFT + H", "Herdr", { tui = "herdr", focus = true })
