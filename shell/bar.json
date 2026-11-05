@@ -1,4 +1,5 @@
 {
+  "background": "glassy",
   "layout": {
     "center": [
       {
@@ -6,6 +7,61 @@
         "formatAlt": "d MMMM 'W'ww yyyy",
         "id": "omarchy.clock",
         "verticalFormat": "HH\n—\nmm"
+      }
+    ],
+    "centerBegin": [
+      {
+        "id": "njpatel.omapager"
+      },
+      {
+        "id": "petrzpav.indicators",
+        "items": [
+          "Dictation",
+          "ScreenRecording",
+          "Reminder",
+          "NightLight",
+          "StayAwake"
+        ]
+      }
+    ],
+    "centerEnd": [
+      {
+        "cities": [
+          {
+            "name": "Paris",
+            "zone": "Europe/Paris"
+          },
+          {
+            "name": "Dubai",
+            "zone": "Asia/Dubai"
+          },
+          {
+            "name": "Tokyo",
+            "zone": "Asia/Tokyo"
+          },
+          {
+            "name": "Los Angeles",
+            "zone": "America/Los_Angeles"
+          },
+          {
+            "name": "New York",
+            "zone": "America/New_York"
+          }
+        ],
+        "here": {
+          "lat": 50.08804,
+          "lon": 14.42076,
+          "name": "Prague",
+          "region": "CZ",
+          "zone": "Europe/Prague"
+        },
+        "id": "omarchy.elsewhen"
+      },
+      {
+        "id": "omarchy.weather"
+      },
+      {
+        "id": "omarchy.system-update"
       }
     ],
     "left": [
@@ -54,56 +110,7 @@
       {
         "id": "omarchy.power"
       }
-    ],
-    "centerBegin": [
-      {
-        "id": "njpatel.omapager"
-      },
-      {
-        "id": "petrzpav.indicators",
-        "items": [
-          "Dictation",
-          "ScreenRecording",
-          "Reminder",
-          "NightLight",
-          "StayAwake"
-        ]
-      }
-    ],
-    "centerEnd": [
-      {
-        "id": "omarchy.elsewhen",
-        "cities": [
-          {
-            "name": "Paris",
-            "zone": "Europe/Paris"
-          },
-          {
-            "name": "Dubai",
-            "zone": "Asia/Dubai"
-          },
-          {
-            "name": "Tokyo",
-            "zone": "Asia/Tokyo"
-          },
-          {
-            "name": "Los Angeles",
-            "zone": "America/Los_Angeles"
-          },
-          {
-            "name": "New York",
-            "zone": "America/New_York"
-          }
-        ]
-      },
-      {
-        "id": "omarchy.weather"
-      },
-      {
-        "id": "omarchy.system-update"
-      }
     ]
   },
-  "position": "bottom",
-  "transparent": true
+  "position": "bottom"
 }
