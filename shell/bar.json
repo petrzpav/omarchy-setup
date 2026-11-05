@@ -21,7 +21,8 @@
           "ScreenRecording",
           "Reminder",
           "NightLight",
-          "StayAwake"
+          "StayAwake",
+          "PhoneSpeaker"
         ]
       }
     ],
