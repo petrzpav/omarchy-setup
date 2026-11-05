@@ -1,34 +1,11 @@
 {
-  "centerAnchor": "omarchy.clock",
   "layout": {
     "center": [
-      {
-        "id": "njpatel.omapager"
-      },
-      {
-        "id": "petrzpav.indicators",
-        "items": [
-          "Dictation",
-          "ScreenRecording",
-          "Reminder",
-          "NightLight",
-          "StayAwake"
-        ]
-      },
       {
         "format": "dddd HH:mm",
         "formatAlt": "d MMMM 'W'ww yyyy",
         "id": "omarchy.clock",
         "verticalFormat": "HH\n—\nmm"
-      },
-      {
-        "id": "omarchy.elsewhen"
-      },
-      {
-        "id": "omarchy.weather"
-      },
-      {
-        "id": "omarchy.system-update"
       }
     ],
     "left": [
@@ -41,10 +18,10 @@
     ],
     "right": [
       {
-        "id": "omarchy.keyboard-layout"
+        "id": "omarchy.tray"
       },
       {
-        "id": "omarchy.tray"
+        "id": "omarchy.keyboard-layout"
       },
       {
         "exec": "~/.config/omarchy/plugins/petrzpav.alerts/bin/alerts-bar",
@@ -76,6 +53,54 @@
       },
       {
         "id": "omarchy.power"
+      }
+    ],
+    "centerBegin": [
+      {
+        "id": "njpatel.omapager"
+      },
+      {
+        "id": "petrzpav.indicators",
+        "items": [
+          "Dictation",
+          "ScreenRecording",
+          "Reminder",
+          "NightLight",
+          "StayAwake"
+        ]
+      }
+    ],
+    "centerEnd": [
+      {
+        "id": "omarchy.elsewhen",
+        "cities": [
+          {
+            "name": "Paris",
+            "zone": "Europe/Paris"
+          },
+          {
+            "name": "Dubai",
+            "zone": "Asia/Dubai"
+          },
+          {
+            "name": "Tokyo",
+            "zone": "Asia/Tokyo"
+          },
+          {
+            "name": "Los Angeles",
+            "zone": "America/Los_Angeles"
+          },
+          {
+            "name": "New York",
+            "zone": "America/New_York"
+          }
+        ]
+      },
+      {
+        "id": "omarchy.weather"
+      },
+      {
+        "id": "omarchy.system-update"
       }
     ]
   },
