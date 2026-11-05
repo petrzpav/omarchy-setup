@@ -2,7 +2,6 @@
 ansible                      # Official assortment of Ansible collections
 clang                        # C language family frontend for LLVM
 composer                     # Dependency Manager for PHP
-dua-cli                      # A tool to conveniently learn about the disk usage of directories, fast!
 flea                         # Fast, keyboard-first file manager for Omarchy
 fuzzel                       # Application launcher for wlroots based Wayland compositors
 ghostty                      # Fast, native, feature-rich terminal emulator pushing modern features
@@ -14,7 +13,6 @@ level-zero-loader            # API for accessing low level interfaces in oneAPI 
 llvm                         # Compiler infrastructure
 obs-studio                   # Free, open source software for live streaming and recording
 owe-lockfeed                 # Lock screen video feed module for the OWE wallpaper engine
-power-profiles-daemon        # Makes power profiles handling available over D-Bus
 python-pillow                # Python Imaging Library (PIL) fork
 rbw                          # Unofficial Bitwarden CLI
 xournalpp                    # Handwriting notetaking software with PDF annotation support
