@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.28] - 2026-11-05
+
+### Added
+
+- Super + Alt + P locks the password vault.
+
 ## [0.1.27] - 2026-11-05
 
 ### Added
@@ -201,6 +207,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
+[0.1.28]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.27...v0.1.28
 [0.1.27]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.26...v0.1.27
 [0.1.26]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.25...v0.1.26
 [0.1.25]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.24...v0.1.25

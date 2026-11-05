@@ -116,7 +116,7 @@ back up a file before changing it (`cp f f.bak.$(date +%s)`); after any
      then run the plugin's `setup` script (builds a small daemon; read its README).
    - **Password vault** (Bitwarden or Vaultwarden through `rbw`, already installed):
      Super + Shift + P copies a password for one paste, + Alt the username,
-     + Ctrl the TOTP code (the key replaces Omarchy's Google Photos). Ask for their e-mail and the server URL (a self-hosted
+     + Ctrl the TOTP code, Super + Alt + P locks the vault (the key replaces Omarchy's Google Photos). Ask for their e-mail and the server URL (a self-hosted
      Vaultwarden may be reachable only over Tailscale), then
      `rbw config set email …`, `rbw config set base_url …` and
      `rbw config set pinentry pinentry-gnome3`. They run `rbw login` themselves in
