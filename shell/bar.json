@@ -27,10 +27,14 @@
     ],
     "centerEnd": [
       {
+        "id": "omarchy.elsewhen",
         "cities": [
           {
-            "name": "Paris",
-            "zone": "Europe/Paris"
+            "name": "Prague",
+            "zone": "Europe/Prague",
+            "lat": 50.08804,
+            "lon": 14.42076,
+            "region": "CZ"
           },
           {
             "name": "Dubai",
@@ -41,12 +45,18 @@
             "zone": "Asia/Tokyo"
           },
           {
-            "name": "Los Angeles",
-            "zone": "America/Los_Angeles"
+            "name": "Miami",
+            "zone": "America/New_York",
+            "lat": 25.77427,
+            "lon": -80.19366,
+            "region": "Florida, US"
           },
           {
-            "name": "New York",
-            "zone": "America/New_York"
+            "name": "Honolulu",
+            "zone": "Pacific/Honolulu",
+            "lat": 21.30694,
+            "lon": -157.85834,
+            "region": "Hawaii, US"
           }
         ],
         "here": {
@@ -56,7 +66,7 @@
           "region": "CZ",
           "zone": "Europe/Prague"
         },
-        "id": "omarchy.elsewhen"
+        "hour24": true
       },
       {
         "id": "omarchy.weather"
