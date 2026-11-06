@@ -56,7 +56,10 @@
             "zone": "Pacific/Honolulu",
             "lat": 21.30694,
             "lon": -157.85834,
-            "region": "Hawaii, US"
+            "region": "Hawaii, US",
+            "people": [
+              "@jiripavelka"
+            ]
           }
         ],
         "here": {
