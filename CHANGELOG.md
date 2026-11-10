@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.33] - 2026-11-10
+
+### Added
+
+- Packages fwupd.
+
 ## [0.1.32] - 2026-11-06
 
 ### Changed
@@ -230,6 +236,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Restore from an old computer's backup, and automatic local / USB restic backups.
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
+[0.1.33]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.32...v0.1.33
 [0.1.32]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.31...v0.1.32
 [0.1.31]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.30...v0.1.31
 [0.1.30]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.29...v0.1.30
