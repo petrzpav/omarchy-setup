@@ -2,8 +2,6 @@
 ansible                      # Official assortment of Ansible collections
 clang                        # C language family frontend for LLVM
 composer                     # Dependency Manager for PHP
-aur:drover                   # A floating indicator of your herdr agents, on every workspace
-aur:drover-debug             # Detached debugging symbols for drover
 flea                         # Fast, keyboard-first file manager for Omarchy
 fuzzel                       # Application launcher for wlroots based Wayland compositors
 fwupd                        # Simple daemon to allow session software to update firmware
@@ -17,7 +15,6 @@ llvm                         # Compiler infrastructure
 obs-studio                   # Free, open source software for live streaming and recording
 owe-lockfeed                 # Lock screen video feed module for the OWE wallpaper engine
 python-pillow                # Python Imaging Library (PIL) fork
-qmltermwidget                # QML port of qtermwidget
 rbw                          # Unofficial Bitwarden CLI
 tpm2-tools                   # Trusted Platform Module 2.0 tools based on tpm2-tss
 xournalpp                    # Handwriting notetaking software with PDF annotation support
