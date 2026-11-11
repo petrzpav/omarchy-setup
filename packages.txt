@@ -2,6 +2,8 @@
 ansible                      # Official assortment of Ansible collections
 clang                        # C language family frontend for LLVM
 composer                     # Dependency Manager for PHP
+aur:drover                   # A floating indicator of your herdr agents, on every workspace
+aur:drover-debug             # Detached debugging symbols for drover
 flea                         # Fast, keyboard-first file manager for Omarchy
 fuzzel                       # Application launcher for wlroots based Wayland compositors
 fwupd                        # Simple daemon to allow session software to update firmware
