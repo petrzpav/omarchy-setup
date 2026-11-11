@@ -60,6 +60,8 @@ PERSONAL_PACKAGES=(
   fprintd libfprint-git tailscale wayvnc
   cmake ninja qt6-connectivity qt6-tools
   qemu-desktop edk2-ovmf
+  # Built locally from github.com/petrzpav/drover, not in the AUR
+  drover drover-debug
 )
 OMARCHY_PACKAGES="${OMARCHY_PATH:-/usr/share/omarchy}/install"
 

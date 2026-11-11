@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.38] - 2026-11-11
+
+### Changed
+
+- Ctrl+P opens the Drover workspace picker while its panel has the keyboard, and herdr-goto in the herdr window as before.
+
+### Fixed
+
+- The package list no longer offers Drover, which is built locally and not in the AUR.
+
 ## [0.1.37] - 2026-11-11
 
 ### Added
@@ -263,6 +273,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
+[0.1.38]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.37...v0.1.38
 [0.1.37]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.36...v0.1.37
 [0.1.36]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.35...v0.1.36
 [0.1.35]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.34...v0.1.35
