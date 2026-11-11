@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.40] - 2026-11-11
+
+### Removed
+
+- The qmltermwidget package is no longer installed.
+- Drover floating agent indicator and its debug symbols package are no longer installed.
+
 ## [0.1.39] - 2026-11-11
 
 ### Added
@@ -276,6 +283,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Restore from an old computer's backup, and automatic local / USB restic backups.
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
+[0.1.40]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.39...v0.1.40
 [0.1.39]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.38...v0.1.39
 [0.1.38]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.37...v0.1.38
 [0.1.37]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.36...v0.1.37
