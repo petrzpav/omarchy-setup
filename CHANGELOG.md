@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.39] - 2026-11-11
+
+### Added
+
+- Packages aur:drover, aur:drover-debug, qmltermwidget.
+
 ## [0.1.38] - 2026-11-11
 
 ### Changed
@@ -273,6 +279,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
+[0.1.39]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.38...v0.1.39
 [0.1.38]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.37...v0.1.38
 [0.1.37]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.36...v0.1.37
 [0.1.36]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.35...v0.1.36
