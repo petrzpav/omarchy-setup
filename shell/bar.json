@@ -1,6 +1,6 @@
 {
   "background": "glassy",
-  "id": "petrzpav.bar",
+  "id": "yakumy.station",
   "layout": {
     "center": [
       {
@@ -81,9 +81,6 @@
     "left": [
       {
         "id": "omarchy.menu"
-      },
-      {
-        "id": "omarchy.workspaces"
       }
     ],
     "right": [
@@ -117,9 +114,6 @@
       },
       {
         "id": "omarchy.audio"
-      },
-      {
-        "id": "omarchy.monitor"
       },
       {
         "id": "omarchy.power"
