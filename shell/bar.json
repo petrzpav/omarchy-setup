@@ -101,7 +101,7 @@
       {
         "id": "petrzpav.wallswap",
         "interval": "180",
-        "sources": "wallhaven"
+        "sources": "wallhaven apod"
       },
       {
         "id": "omarchy.agents"
