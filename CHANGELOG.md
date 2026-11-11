@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.37] - 2026-11-11
+
+### Added
+
+- Packages aur:drover, aur:drover-debug.
+
 ## [0.1.36] - 2026-11-11
 
 ### Changed
@@ -254,6 +260,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Restore from an old computer's backup, and automatic local / USB restic backups.
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
+[0.1.37]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.36...v0.1.37
 [0.1.36]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.35...v0.1.36
 [0.1.35]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.34...v0.1.35
 [0.1.34]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.33...v0.1.34
