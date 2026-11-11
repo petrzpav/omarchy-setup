@@ -33,7 +33,16 @@ o.bind("SUPER + SHIFT + H", "Herdr", { tui = "herdr", focus = true })
 -- CTRL + P in the herdr window: search-first agent + space switcher across all herdr machines
 -- (fzf in a floating terminal). Bound here, not in herdr's config.toml, because herdr runs its
 -- popup commands on the machine it shows. Every other window gets CTRL + P as usual.
+-- Drover's panel (github.com/petrzpav/drover) is a layer surface, never the active window, so
+-- while it has the keyboard it says so with $XDG_RUNTIME_DIR/drover.focus and gets CTRL + P:
+-- its picker starts an agent in a herdr workspace.
 o.bind("CTRL + P", "Herdr: go to agent or space", function()
+  local drover = io.open((os.getenv("XDG_RUNTIME_DIR") or "") .. "/drover.focus")
+  if drover then
+    drover:close()
+    hl.exec_cmd("drover pick")
+    return
+  end
   local window = hl.get_active_window()
   if window and window.class == "org.omarchy.herdr" then
     hl.exec_cmd("uwsm-app -- xdg-terminal-exec --app-id=org.omarchy.terminal --title=herdr-goto -e " .. bin .. "herdr-goto")
