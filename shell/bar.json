@@ -121,5 +121,16 @@
     ],
     "tray": []
   },
-  "position": "bottom"
+  "position": "bottom",
+  "monitors": {
+    "eDP-1": {
+      "enabled": true,
+      "position": "bottom",
+      "width": 100,
+      "height": 0,
+      "background": "blur",
+      "style": "default",
+      "contentSize": 13
+    }
+  }
 }
