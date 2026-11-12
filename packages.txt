@@ -3,6 +3,7 @@ ansible                      # Official assortment of Ansible collections
 clang                        # C language family frontend for LLVM
 composer                     # Dependency Manager for PHP
 flea                         # Fast, keyboard-first file manager for Omarchy
+aur:fresh-editor-bin         # A lightweight, fast terminal-based text editor with LSP support and TypeScript plugins
 fuzzel                       # Application launcher for wlroots based Wayland compositors
 fwupd                        # Simple daemon to allow session software to update firmware
 ghostty                      # Fast, native, feature-rich terminal emulator pushing modern features
