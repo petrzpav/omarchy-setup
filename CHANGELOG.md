@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.41] - 2026-11-12
+
+### Added
+
+- Fresh text editor is installed with the setup, a fast terminal editor with LSP support and TypeScript plugins.
+
 ## [0.1.40] - 2026-11-11
 
 ### Removed
@@ -283,6 +289,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Restore from an old computer's backup, and automatic local / USB restic backups.
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
+[0.1.41]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.40...v0.1.41
 [0.1.40]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.39...v0.1.40
 [0.1.39]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.38...v0.1.39
 [0.1.38]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.37...v0.1.38
