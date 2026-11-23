@@ -132,7 +132,7 @@
       "position": "bottom",
       "width": 100,
       "height": 0,
-      "background": "blur",
+      "background": "transparent",
       "style": "default",
       "contentSize": 13
     }
