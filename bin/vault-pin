@@ -9,19 +9,32 @@ a short one is safe; the sealed blob is useless on any other machine.
   vault-pin status    show whether the PIN is set up and the TPM lockout state
   vault-pin remove    forget the sealed password, rbw asks for the master again
   vault-pin pinentry  (internal) the pinentry rbw runs; see vault-pinentry
+  vault-pin hold      (internal) keeps a herdr pane open for the prompt
 
 rbw has no PIN support of its own, so `vault-pin pinentry` stands in for its
 pinentry: when rbw asks for the master password it asks for the PIN, unseals
 the password and hands it to rbw. Anything else (2FA codes, a password rbw
 rejected, a wrong PIN three times, a locked-out TPM) goes to the real pinentry.
+
+When rbw runs in herdr, every prompt also opens in a herdr pane below it
+(pinentry-curses, or pinentry-tty when the pane is too small for a dialog), so it
+shows wherever herdr does: its window, `herdr --remote` on the phone. Below an
+agent the pane reports itself as a blocked agent named "vault", so Drover and
+the herdr sidebar show it as asking.
+The first answer wins, the window or the pane, and the other closes. Without a
+herdr agent (the vault-pick key), or if herdr fails, only the window opens.
 """
 
 import json
 import os
+import queue
+import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -33,9 +46,11 @@ REAL_FILE = DATA / "real-pinentry"
 LAST_FILE = STATE / "last"
 PINENTRY_WRAPPER = Path(__file__).resolve().with_name("vault-pinentry")
 TPM_DEVICE = "/dev/tpmrm0"
+DIALOG_ROWS = 14  # pinentry-curses needs about this many rows for the PIN dialog
 PIN_TRIES = 3
 MIN_PIN = 4
 MAX_SECRET = 128  # TPM2 sealed data objects hold at most 128 bytes
+CANCELED = "83886179"  # GPG_ERR_CANCELED from pinentry: the user cancelled
 
 TPM_ENV = dict(os.environ, TPM2TOOLS_TCTI=f"device:{TPM_DEVICE}")
 
@@ -82,13 +97,24 @@ def real_pinentry() -> str:
     sys.exit("vault-pin: no pinentry found")
 
 
+def die_with_parent():
+    # A prompt left open after the wrapper dies would answer nobody.
+    try:
+        import ctypes
+        ctypes.CDLL(None, use_errno=True).prctl(1, signal.SIGTERM)  # PR_SET_PDEATHSIG
+    except Exception:
+        pass
+
+
 class Pinentry:
     """A conversation with the real pinentry program."""
 
-    def __init__(self, args=()):
-        self.p = subprocess.Popen([real_pinentry(), *args], stdin=subprocess.PIPE,
-                                  stdout=subprocess.PIPE, text=True, bufsize=1)
-        self.read()
+    def __init__(self, args=(), program=None, greet=True):
+        self.p = subprocess.Popen([program or real_pinentry(), *args], stdin=subprocess.PIPE,
+                                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                  text=True, bufsize=1, preexec_fn=die_with_parent)
+        if greet:
+            self.read()
 
     def read(self):
         """Read one reply: (data lines, final OK/ERR line)."""
@@ -116,22 +142,84 @@ class Pinentry:
             pass
         self.p.wait()
 
+    def kill(self):
+        if self.p.poll() is None:
+            self.p.terminate()
+            try:
+                self.p.wait(2)
+            except subprocess.TimeoutExpired:
+                self.p.kill()
 
-def ask(prompt, desc, error=None, title="Vault", args=()):
-    """Ask for a secret; None when cancelled."""
-    pe = Pinentry(args)
+
+def race(lines, targets, client=None):
+    """Ask on every target at once; the first answer wins, the rest close.
+
+    `lines` set the prompt up (SETDESC, SETPROMPT…), `targets` are
+    (program, args) pairs. A cancel anywhere counts; a prompt that fails for
+    another reason (no display, a closed pane) leaves the question to the
+    others. When `client`, the rbw process waiting, is gone, nobody is left to
+    answer, so everything closes.
+    """
+    answers, started = queue.Queue(), []
+
+    def converse(pe):
+        data, end = pe.read()
+        if end.startswith("OK"):
+            for line in lines:
+                pe.cmd(line)
+            data, end = pe.cmd("GETPIN")
+        answers.put((data, end))
+
+    for program, args in targets:
+        try:
+            pe = Pinentry(args, program, greet=False)
+        except OSError:
+            continue
+        started.append(pe)
+        threading.Thread(target=converse, args=(pe,), daemon=True).start()
+
+    result, pending = ([], f"ERR {CANCELED} no pinentry"), len(started)
     try:
-        pe.cmd(f"SETTITLE {esc(title)}")
-        pe.cmd(f"SETDESC {esc(desc)}")
-        pe.cmd(f"SETPROMPT {esc(prompt)}")
-        if error:
-            pe.cmd(f"SETERROR {esc(error)}")
-        data, end = pe.cmd("GETPIN")
-        if not end.startswith("OK"):
-            return None
-        return unesc("".join(d[2:] for d in data))
+        while pending:
+            try:
+                data, end = answers.get(timeout=1)
+            except queue.Empty:
+                if client and not alive(client):
+                    result = ([], f"ERR {CANCELED} the program asking is gone")
+                    break
+                continue
+            pending -= 1
+            result = (data, end)
+            if end.startswith("OK") or CANCELED in end:
+                break
     finally:
-        pe.close()
+        for pe in started:
+            pe.kill()
+    return result
+
+
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+
+
+def ask(prompt, desc, error=None, title="Vault", args=(), ui=None):
+    """Ask for a secret; None when cancelled."""
+    lines = [f"SETTITLE {esc(title)}", f"SETDESC {esc(desc)}", f"SETPROMPT {esc(prompt)}"]
+    if error:
+        lines.append(f"SETERROR {esc(error)}")
+    if ui:
+        data, end = ui.ask(lines)
+    else:
+        data, end = race(lines, [(real_pinentry(), list(args))])
+    if not end.startswith("OK"):
+        return None
+    return unesc("".join(d[2:] for d in data))
 
 
 # ------------------------------------------------------------------- TPM bits
@@ -232,6 +320,171 @@ def lockout_info():
     return s
 
 
+# ------------------------------------------------------------- herdr bits
+
+def herdr_caller():
+    """The waiting rbw client that runs in a herdr pane: (pid, pane, socket).
+
+    rbw-agent starts the pinentry and passes on only a few variables, so the
+    pane comes from the rbw client itself; the newest one wins.
+    """
+    best, uid = None, os.getuid()
+    for d in Path("/proc").iterdir():
+        if not d.name.isdigit():
+            continue
+        try:
+            if d.stat().st_uid != uid or (d / "comm").read_text().strip() != "rbw":
+                continue
+            env = dict(kv.split("=", 1) for kv in
+                       (d / "environ").read_bytes().decode(errors="replace").split("\0")
+                       if "=" in kv)
+            start = int((d / "stat").read_text().rsplit(")", 1)[1].split()[19])
+        except (OSError, ValueError, IndexError):
+            continue
+        pane = env.get("HERDR_PANE_ID")
+        if pane and (best is None or start > best[0]):
+            best = (start, int(d.name), pane, env.get("HERDR_SOCKET_PATH"))
+    return best[1:] if best else None
+
+
+class HerdrPane:
+    """A pane below the agent that asked, holding a terminal for pinentry-curses."""
+
+    def __init__(self, pane, socket):
+        self.env = dict(os.environ)
+        if socket:
+            self.env["HERDR_SOCKET_PATH"] = socket
+        self.id = None
+        caller = self.herdr("pane", "get", pane)["pane"]
+        self.agent = (caller.get("label") or caller.get("terminal_title_stripped") or "").strip() \
+            or "an agent"
+        # Room for the dialog if the caller has it, else at least 40 %.
+        rows = caller.get("scroll", {}).get("viewport_rows") or 0
+        ratio = min(0.6, 1 - (DIALOG_ROWS + 1) / rows) if rows > 2 * DIALOG_ROWS else 0.6
+        made = self.herdr("pane", "split", pane, "--direction", "down", "--ratio", f"{ratio:.2f}")
+        self.id = made["pane"]["pane_id"]
+        rows = made["pane"].get("scroll", {}).get("viewport_rows") or 0
+        self.program = "pinentry-curses" if rows >= DIALOG_ROWS else "pinentry-tty"
+        try:
+            label = f"Vault PIN · {self.agent}".replace("\n", " ")[:80]
+            # The leading space keeps it out of the shell history.
+            self.herdr("pane", "run", self.id,
+                       f" exec {shlex.quote(str(Path(__file__).resolve()))} hold "
+                       f"{shlex.quote(label)} {os.getpid()}")
+            # Only below an agent: Drover closes the tab of an agent that ends
+            # unless another agent works in it, and a plain shell isn't one.
+            if caller.get("agent"):
+                self.herdr("pane", "report-agent", self.id, "--source", "vault-pin", "--agent",
+                           "vault", "--state", "blocked", "--message", f"PIN for {self.agent}")
+            shell = self.herdr("pane", "process-info", "--pane", self.id)["process_info"]["shell_pid"]
+            self.tty = os.readlink(f"/proc/{shell}/fd/0")
+            # Wait for the shell to become `hold`, so its prompt can't draw over the dialog.
+            for _ in range(50):
+                if b"hold" in Path(f"/proc/{shell}/cmdline").read_bytes():
+                    break
+                time.sleep(0.1)
+            self.herdr("notification", "show", "Vault PIN", "--body",
+                       f"{self.agent} is waiting for the vault PIN", "--sound", "request",
+                       check=False)
+        except Exception:
+            self.close()
+            raise
+
+    def herdr(self, *args, check=True):
+        r = subprocess.run(["herdr", *args], env=self.env, capture_output=True, text=True,
+                           timeout=10)
+        try:
+            out = json.loads(r.stdout or "{}")
+        except ValueError:
+            out = {}
+        if check and (r.returncode or "error" in out):
+            raise RuntimeError(f"herdr {args[0]} {args[1]}: {out.get('error') or r.stderr.strip()}")
+        return out.get("result", {})
+
+    def target(self):
+        args = ["--ttyname", self.tty, "--ttytype", "xterm-256color"]
+        lang = os.environ.get("LC_ALL") or os.environ.get("LC_CTYPE") or os.environ.get("LANG")
+        if lang:
+            args += ["--lc-ctype", lang]
+        return (self.program, args)
+
+    def close(self):
+        if self.id:
+            self.herdr("pane", "close", self.id, check=False)
+            self.id = None
+
+
+def hold(label, owner=None):
+    """Run in the herdr pane: name it and keep its terminal for the prompt.
+
+    Ends, closing the pane, once `owner` (the wrapper) is gone, should it be
+    killed before it could close the pane itself.
+    """
+    sys.stdout.write(f"\033]2;{label}\007\033[H\033[2J")
+    sys.stdout.flush()
+    while owner is None or alive(owner):
+        time.sleep(2)
+
+
+class PromptUI:
+    """Where prompts show: the real pinentry, plus a herdr pane when an agent asks."""
+
+    def __init__(self, args):
+        self.args = list(args)
+        self.caller = herdr_caller()
+        self.pane = None
+        self.note = None
+
+    def open(self):
+        """Open the herdr pane, once, when an agent in herdr is the one asking."""
+        if self.caller and self.pane is None and alive(self.caller[0]):
+            try:
+                self.pane = HerdrPane(*self.caller[1:])
+                self.notify()
+            except Exception as e:
+                # Fail open: the window alone, as before.
+                self.caller = None
+                log(f"herdr pane: {e}")
+
+    def ask(self, lines):
+        if self.caller and not alive(self.caller[0]):
+            return [], f"ERR {CANCELED} the program asking is gone"
+        self.open()
+        targets = [(real_pinentry(), self.args)]
+        if self.pane:
+            targets.append(self.pane.target())
+        return race(lines, targets, self.caller[0] if self.caller else None)
+
+    def notify(self):
+        # A critical notification shows over full-screen windows too.
+        r = subprocess.run(["notify-send", "-p", "-a", "Vault", "-u", "critical", "-i",
+                            "dialog-password", "Vault PIN",
+                            f"{self.pane.agent} is waiting for the vault PIN"],
+                           capture_output=True, text=True)
+        self.note = r.stdout.strip() or None
+
+    def close(self):
+        if self.pane:
+            self.pane.close()
+            self.pane = None
+        if self.note:
+            subprocess.run(["gdbus", "call", "--session", "--dest",
+                            "org.freedesktop.Notifications", "--object-path",
+                            "/org/freedesktop/Notifications", "--method",
+                            "org.freedesktop.Notifications.CloseNotification", self.note],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.note = None
+
+
+def log(msg):
+    try:
+        STATE.mkdir(parents=True, exist_ok=True)
+        with open(STATE / "log", "a") as f:
+            f.write(f"{time.strftime('%F %T')} {msg}\n")
+    except OSError:
+        pass
+
+
 # ----------------------------------------------------------- pinentry wrapper
 
 def mark(what: str):
@@ -257,6 +510,14 @@ def notify(summary, body=""):
 
 def wrapper(args):
     """Speak Assuan to rbw-agent; answer master-password requests with the PIN."""
+    ui = PromptUI(args)
+    try:
+        converse(args, ui)
+    finally:
+        ui.close()
+
+
+def converse(args, ui):
     out = sys.stdout
     history, opts = [], {}
 
@@ -266,16 +527,10 @@ def wrapper(args):
         out.flush()
 
     def forward_to_real(extra_desc=None):
-        pe = Pinentry(args)
-        try:
-            for line in history:
-                if extra_desc and line.startswith("SETDESC "):
-                    line = f"{line}%0A%0A{esc(extra_desc)}"
-                pe.cmd(line)
-            data, end = pe.cmd("GETPIN")
-            reply(*data, end)
-        finally:
-            pe.close()
+        lines = [f"{line}%0A%0A{esc(extra_desc)}" if extra_desc and line.startswith("SETDESC ")
+                 else line for line in history]
+        data, end = ui.ask(lines)
+        reply(*data, end)
 
     reply("OK vault-pin pinentry")
     for raw in sys.stdin:
@@ -317,16 +572,18 @@ def wrapper(args):
                 forward_to_real()
             continue
 
-        if not pin_unlock(args, reply):
+        if not pin_unlock(ui, reply):
             # Cancelled, wrong PIN too often, or TPM trouble: master password.
             forward_to_real()
 
 
-def pin_unlock(args, reply) -> bool:
+def pin_unlock(ui, reply) -> bool:
     error = None
+    ui.open()
+    who = f"Asked by: {ui.pane.agent}\n" if ui.pane else ""
     for left in range(PIN_TRIES - 1, -1, -1):
-        pin = ask("PIN", "Unlock the vault with your PIN.\n"
-                  "(Cancel to type the master password instead.)", error, args=args)
+        pin = ask("PIN", f"Unlock the vault with your PIN.\n{who}"
+                  "(Cancel to type the master password instead.)", error, ui=ui)
         if pin is None:
             return False
         try:
@@ -424,6 +681,9 @@ def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "status"
     if cmd == "pinentry":
         wrapper(sys.argv[2:])
+    elif cmd == "hold":
+        hold(sys.argv[2] if len(sys.argv) > 2 else "Vault PIN",
+             int(sys.argv[3]) if len(sys.argv) > 3 else None)
     elif cmd == "setup":
         setup()
     elif cmd == "remove":
