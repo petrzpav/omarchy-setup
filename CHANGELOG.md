@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.45] - 2026-11-25
+
+### Added
+
+- The vault PIN prompt also opens in a herdr pane below the agent that asked, so it can be answered from `herdr --remote` or Drover too; a critical notification announces it and the first answer wins.
+
+### Fixed
+
+- New feature 'hotfix-petrzpav'.
+
 ## [0.1.44] - 2026-11-23
 
 ### Changed
@@ -310,6 +320,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
+[0.1.45]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.44...v0.1.45
 [0.1.44]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.43...v0.1.44
 [0.1.43]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.42...v0.1.43
 [0.1.42]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.41...v0.1.42
