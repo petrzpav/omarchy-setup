@@ -12,10 +12,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - The vault PIN prompt also opens in a herdr pane below the agent that asked, so it can be answered from `herdr --remote` or Drover too; a critical notification announces it and the first answer wins.
 
-### Fixed
-
-- New feature 'hotfix-petrzpav'.
-
 ## [0.1.44] - 2026-11-23
 
 ### Changed
