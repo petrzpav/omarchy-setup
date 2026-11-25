@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- The vault PIN prompt also opens in a herdr pane below the agent that asked, so it can be answered from `herdr --remote` or Drover too; a critical notification announces it and the first answer wins.
+
 ## [0.1.44] - 2026-11-23
 
 ### Changed
