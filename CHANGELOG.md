@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.49] - 2026-11-28
+
+### Changed
+
+- The Superwhisper dictation panel sits directly on the bar's right side instead of inside the tray menu.
+
 ## [0.1.48] - 2026-11-28
 
 ### Added
@@ -353,6 +359,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Restore from an old computer's backup, and automatic local / USB restic backups.
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
+[0.1.49]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.48...v0.1.49
 [0.1.48]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.47...v0.1.48
 [0.1.47]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.46...v0.1.47
 [0.1.46]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.45...v0.1.46
