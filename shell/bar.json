@@ -75,15 +75,15 @@
         "id": "omarchy.weather"
       },
       {
-        "id": "omarchy.workspaces"
-      },
-      {
         "id": "omarchy.system-update"
       }
     ],
     "left": [
       {
         "id": "omarchy.menu"
+      },
+      {
+        "id": "omarchy.workspaces"
       }
     ],
     "right": [
@@ -92,6 +92,9 @@
       },
       {
         "id": "omarchy.keyboard-layout"
+      },
+      {
+        "id": "omarchy.monitor"
       },
       {
         "exec": "~/.config/omarchy/plugins/petrzpav.alerts/bin/alerts-bar",
@@ -105,6 +108,9 @@
         "id": "petrzpav.wallswap",
         "interval": "180",
         "sources": "wallhaven apod"
+      },
+      {
+        "id": "omarchy.local-models"
       },
       {
         "id": "omarchy.agents"

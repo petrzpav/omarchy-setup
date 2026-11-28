@@ -165,3 +165,6 @@ delivery = "off"
 [ui.sound]
 # No chime when an agent finishes or needs input
 enabled = false
+
+[update]
+version_check = false

@@ -5,14 +5,12 @@ blender                      # A fully integrated 3D graphics creation suite
 chromium                     # A web browser built for speed, simplicity, and security
 clang                        # C language family frontend for LLVM
 composer                     # Dependency Manager for PHP
-evince                       # Document viewer (PDF, PostScript, XPS, djvu, dvi, tiff, cbr, cbz, cb7, cbt)
 flea                         # Fast, keyboard-first file manager for Omarchy
 aur:fresh-editor-bin         # A lightweight, fast terminal-based text editor with LSP support and TypeScript plugins
 fuzzel                       # Application launcher for wlroots based Wayland compositors
 fwupd                        # Simple daemon to allow session software to update firmware
 ghostty                      # Fast, native, feature-rich terminal emulator pushing modern features
 google-cloud-cli             # Command line tools for Google Cloud: gcloud and bq
-imv                          # Image viewer for Wayland and X11
 intel-compute-runtime        # Intel(R) Graphics Compute Runtime for oneAPI Level Zero and OpenCL(TM) Driver
 kdenlive                     # A non-linear video editor for Linux using the MLT video framework
 lazydocker                   # A simple terminal UI for docker and docker-compose, written in Go with the gocui library.
@@ -23,9 +21,6 @@ linux-firmware               # Firmware files for Linux - Default set
 llvm                         # Compiler infrastructure
 moonlight-qt                 # GameStream client for PCs
 mpv                          # a free, open source, and cross-platform media player
-mpv-mpris                    # MPRIS plugin for mpv
-nautilus                     # Default file manager for GNOME
-nautilus-python              # Python bindings for the Nautilus Extension API
 noto-fonts-cjk               # Google Noto CJK fonts
 obs-studio                   # Free, open source software for live streaming and recording
 owe-lockfeed                 # Lock screen video feed module for the OWE wallpaper engine
@@ -34,9 +29,7 @@ pipewire-alsa                # Low-latency audio/video router and processor - AL
 pipewire-pulse               # Low-latency audio/video router and processor - PulseAudio replacement
 python-pillow                # Python Imaging Library (PIL) fork
 rbw                          # Unofficial Bitwarden CLI
-sushi                        # A quick previewer for Nautilus
 tpm2-tools                   # Trusted Platform Module 2.0 tools based on tpm2-tss
 ttf-ia-writer                # Subset of the fonts provided by iA Writer
 xorg-xsetroot                # Classic X utility to set your root window background to a given pattern or color
 xournalpp                    # Handwriting notetaking software with PDF annotation support
-yaru-icon-theme              # Yaru default ubuntu icon theme
