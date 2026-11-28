@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.47] - 2026-11-28
+
+### Changed
+
+- The bar layout is updated.
+- The herdr setup (config, keybindings, scripts, persistent spaces) is updated.
+
+### Removed
+
+- Packages evince, imv, mpv-mpris, nautilus, nautilus-python, sushi, yaru-icon-theme.
+
 ## [0.1.46] - 2026-11-28
 
 ### Changed
@@ -331,6 +342,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Restore from an old computer's backup, and automatic local / USB restic backups.
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
+[0.1.47]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.46...v0.1.47
 [0.1.46]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.45...v0.1.46
 [0.1.45]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.44...v0.1.45
 [0.1.44]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.43...v0.1.44
