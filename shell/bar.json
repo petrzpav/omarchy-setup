@@ -110,9 +110,6 @@
         "sources": "wallhaven apod"
       },
       {
-        "id": "omarchy.local-models"
-      },
-      {
         "id": "omarchy.agents"
       },
       {
@@ -120,6 +117,9 @@
       },
       {
         "id": "omarchy.network"
+      },
+      {
+        "id": "omarchy.mv7plus"
       },
       {
         "id": "omarchy.audio"
