@@ -75,6 +75,9 @@
         "id": "omarchy.weather"
       },
       {
+        "id": "omarchy.workspaces"
+      },
+      {
         "id": "omarchy.system-update"
       }
     ],
