@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.46] - 2026-11-28
+
+### Changed
+
+- The bar layout is updated.
+
+### Added
+
+- Packages base, chromium, evince, google-cloud-cli, imv, libpulse, limine, linux-firmware, moonlight-qt, mpv, mpv-mpris, nautilus, nautilus-python, noto-fonts-cjk, pipewire, pipewire-alsa, pipewire-pulse, sushi, ttf-ia-writer, xorg-xsetroot, yaru-icon-theme.
+
+### Removed
+
+- Packages aur:google-cloud-cli.
+
 ## [0.1.45] - 2026-11-25
 
 ### Added
@@ -317,6 +331,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Restore from an old computer's backup, and automatic local / USB restic backups.
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
+[0.1.46]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.45...v0.1.46
 [0.1.45]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.44...v0.1.45
 [0.1.44]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.43...v0.1.44
 [0.1.43]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.42...v0.1.43
