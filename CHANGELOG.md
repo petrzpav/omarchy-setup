@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.50] - 2026-11-28
+
+### Removed
+
+- The workspaces and monitor widgets are gone from the main bar.
+
+### Added
+
+- A second bar on monitor DP-2 sits at the bottom with a blurred background.
+
 ## [0.1.49] - 2026-11-28
 
 ### Changed
@@ -358,6 +368,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
+[0.1.50]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.49...v0.1.50
 [0.1.49]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.48...v0.1.49
 [0.1.48]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.47...v0.1.48
 [0.1.47]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.46...v0.1.47
