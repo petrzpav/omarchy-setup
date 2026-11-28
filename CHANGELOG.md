@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.49] - 2026-11-28
+
+### Changed
+
+- The Superwhisper dictation panel sits directly on the bar's right side instead of inside the tray menu.
+
 ## [0.1.48] - 2026-11-28
 
 ### Added
@@ -352,6 +358,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Optional remote access from the iPhone (Tailscale + Heeler).
 
 [Unreleased]: https://github.com/petrzpav/omarchy-setup/compare/staging...dev
+[0.1.49]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.48...v0.1.49
 [0.1.48]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.47...v0.1.48
 [0.1.47]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.46...v0.1.47
 [0.1.46]: https://github.com/petrzpav/omarchy-setup/compare/v0.1.45...v0.1.46
